@@ -1,0 +1,421 @@
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { 
+  getFirestore, 
+  collection, 
+  doc, 
+  setDoc, 
+  deleteDoc, 
+  onSnapshot, 
+  getDocs 
+} from 'firebase/firestore';
+import firebaseConfig from '../../firebase-applet-config.json';
+import { Association, Producer, Farm, CentralBeneficio, ReceptionBatch } from '../types';
+import { 
+  INITIAL_ASSOCIATIONS, 
+  INITIAL_PRODUCERS, 
+  INITIAL_FARMS, 
+  INITIAL_CENTRALES,
+  INITIAL_RECEPTIONS 
+} from '../data/mockData';
+
+// Initialize Firebase
+export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+
+export const db = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
+  ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
+  : getFirestore(app);
+
+// Helper to sanitize undefined values before Firestore writes
+export function sanitizeForFirestore<T>(data: T): T {
+  if (data === null || data === undefined) return null as any;
+  if (Array.isArray(data)) {
+    return data.filter((i) => i !== undefined).map((i) => sanitizeForFirestore(i)) as any;
+  }
+  if (typeof data === 'object') {
+    const clean: Record<string, any> = {};
+    for (const [key, value] of Object.entries(data as Record<string, any>)) {
+      if (value !== undefined) {
+        clean[key] = sanitizeForFirestore(value);
+      }
+    }
+    return clean as T;
+  }
+  return data;
+}
+
+// Local Storage Keys for Instant Offline Cache
+const STORAGE_KEYS = {
+  ASSOCIATIONS: 'agronomatrix_central_associations',
+  PRODUCERS: 'agronomatrix_central_producers',
+  FARMS: 'agronomatrix_central_farms',
+  CENTRALES: 'agronomatrix_central_facilities',
+  RECEPTIONS: 'agronomatrix_central_receptions'
+};
+
+function readLocalCache<T>(key: string, fallback: T): T {
+  try {
+    const cached = localStorage.getItem(key);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed as T;
+    }
+  } catch (e) {
+    console.warn(`Error reading local cache for ${key}:`, e);
+  }
+  return fallback;
+}
+
+function writeLocalCache<T>(key: string, data: T): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {
+    console.warn(`Error writing local cache for ${key}:`, e);
+  }
+}
+
+/**
+ * Real-time subscription to Associations (stored in `cacao_templates` with category='asociacion')
+ */
+export function subscribeToAssociations(
+  onData: (associations: Association[]) => void,
+  onStatusChange?: (isOnline: boolean) => void
+) {
+  const colRef = collection(db, 'cacao_templates');
+  let unsubscribe: (() => void) | null = null;
+
+  try {
+    unsubscribe = onSnapshot(
+      colRef,
+      (snapshot) => {
+        if (onStatusChange) onStatusChange(true);
+        const list: Association[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.category === 'asociacion') {
+            list.push({
+              id: docSnap.id,
+              name: data.title || data.name || 'Asociación Sin Nombre',
+              code: data.code || `ASOC-${docSnap.id.slice(0, 4)}`,
+              description: data.description || '',
+              department: data.associationDetails?.department || data.department || 'Santander',
+              municipality: data.associationDetails?.municipality || data.municipality || 'San Vicente de Chucurí',
+              contactPhone: data.associationDetails?.contactPhone || data.contactPhone,
+              contactEmail: data.associationDetails?.contactEmail || data.contactEmail,
+              totalMembers: data.associationDetails?.totalMembers || data.totalMembers || 0,
+              certifiedHectares: data.associationDetails?.certifiedHectares || data.certifiedHectares || 0,
+              createdAt: data.createdAt || new Date().toISOString()
+            });
+          }
+        });
+
+        if (list.length === 0) {
+          const fallback = readLocalCache(STORAGE_KEYS.ASSOCIATIONS, INITIAL_ASSOCIATIONS);
+          writeLocalCache(STORAGE_KEYS.ASSOCIATIONS, fallback);
+          onData(fallback);
+        } else {
+          writeLocalCache(STORAGE_KEYS.ASSOCIATIONS, list);
+          onData(list);
+        }
+      },
+      (err) => {
+        console.warn('Firestore associations subscription warning, using local cache:', err.message);
+        if (onStatusChange) onStatusChange(false);
+        const fallback = readLocalCache(STORAGE_KEYS.ASSOCIATIONS, INITIAL_ASSOCIATIONS);
+        onData(fallback);
+      }
+    );
+  } catch (e) {
+    if (onStatusChange) onStatusChange(false);
+    const fallback = readLocalCache(STORAGE_KEYS.ASSOCIATIONS, INITIAL_ASSOCIATIONS);
+    onData(fallback);
+  }
+
+  return () => {
+    if (unsubscribe) unsubscribe();
+  };
+}
+
+/**
+ * Real-time subscription to Producers (`cacao_producers`)
+ */
+export function subscribeToProducers(
+  onData: (producers: Producer[]) => void,
+  onStatusChange?: (isOnline: boolean) => void
+) {
+  const colRef = collection(db, 'cacao_producers');
+  let unsubscribe: (() => void) | null = null;
+
+  try {
+    unsubscribe = onSnapshot(
+      colRef,
+      (snapshot) => {
+        if (onStatusChange) onStatusChange(true);
+        const list: Producer[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          list.push({
+            id: docSnap.id,
+            associationId: data.associationId,
+            associationName: data.associationName,
+            associationCode: data.associationCode,
+            producerName: data.producerName || 'Productor sin nombre',
+            documentId: data.documentId || 'N/A',
+            phone: data.phone,
+            veredaOrLocation: data.veredaOrLocation || 'Vereda General',
+            latitude: data.latitude,
+            longitude: data.longitude,
+            gpsAccuracy: data.gpsAccuracy,
+            photoUrl: data.photoUrl,
+            dataAuthorization: data.dataAuthorization ?? true,
+            dynamicValues: data.dynamicValues || {},
+            createdAt: data.createdAt,
+            operatorEmail: data.operatorEmail,
+            sourceDevice: data.sourceDevice
+          });
+        });
+
+        if (list.length === 0) {
+          const fallback = readLocalCache(STORAGE_KEYS.PRODUCERS, INITIAL_PRODUCERS);
+          writeLocalCache(STORAGE_KEYS.PRODUCERS, fallback);
+          onData(fallback);
+        } else {
+          writeLocalCache(STORAGE_KEYS.PRODUCERS, list);
+          onData(list);
+        }
+      },
+      (err) => {
+        console.warn('Firestore producers subscription warning, using local cache:', err.message);
+        if (onStatusChange) onStatusChange(false);
+        const fallback = readLocalCache(STORAGE_KEYS.PRODUCERS, INITIAL_PRODUCERS);
+        onData(fallback);
+      }
+    );
+  } catch (e) {
+    if (onStatusChange) onStatusChange(false);
+    const fallback = readLocalCache(STORAGE_KEYS.PRODUCERS, INITIAL_PRODUCERS);
+    onData(fallback);
+  }
+
+  return () => {
+    if (unsubscribe) unsubscribe();
+  };
+}
+
+/**
+ * Real-time subscription to Farms (`cacao_farms`)
+ */
+export function subscribeToFarms(
+  onData: (farms: Farm[]) => void,
+  onStatusChange?: (isOnline: boolean) => void
+) {
+  const colRef = collection(db, 'cacao_farms');
+  let unsubscribe: (() => void) | null = null;
+
+  try {
+    unsubscribe = onSnapshot(
+      colRef,
+      (snapshot) => {
+        if (onStatusChange) onStatusChange(true);
+        const list: Farm[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          list.push({
+            id: docSnap.id,
+            producerId: data.producerId,
+            producerName: data.producerName,
+            producerDocument: data.producerDocument,
+            associationId: data.associationId,
+            associationName: data.associationName,
+            associationCode: data.associationCode,
+            farmName: data.farmName || 'Predio Cacaotero',
+            cadastralCode: data.cadastralCode || 'N/A',
+            department: data.department || 'Santander',
+            municipality: data.municipality || 'San Vicente de Chucurí',
+            vereda: data.vereda || 'Vereda General',
+            latitude: data.latitude,
+            longitude: data.longitude,
+            altitudeMeters: data.altitudeMeters,
+            gpsAccuracy: data.gpsAccuracy,
+            totalAreaHa: data.totalAreaHa || 0,
+            cacaoAreaHa: data.cacaoAreaHa || 0,
+            cloneDistributions: data.cloneDistributions || [],
+            deforestationStatus: data.deforestationStatus || 'compliant',
+            deforestationDetails: data.deforestationDetails || 'Verificado conforme a normativa EUDR.',
+            kmlFileName: data.kmlFileName,
+            visitDate: data.visitDate,
+            recommendations: data.recommendations,
+            createdAt: data.createdAt,
+            technicianEmail: data.technicianEmail
+          });
+        });
+
+        if (list.length === 0) {
+          const fallback = readLocalCache(STORAGE_KEYS.FARMS, INITIAL_FARMS);
+          writeLocalCache(STORAGE_KEYS.FARMS, fallback);
+          onData(fallback);
+        } else {
+          writeLocalCache(STORAGE_KEYS.FARMS, list);
+          onData(list);
+        }
+      },
+      (err) => {
+        console.warn('Firestore farms subscription warning, using local cache:', err.message);
+        if (onStatusChange) onStatusChange(false);
+        const fallback = readLocalCache(STORAGE_KEYS.FARMS, INITIAL_FARMS);
+        onData(fallback);
+      }
+    );
+  } catch (e) {
+    if (onStatusChange) onStatusChange(false);
+    const fallback = readLocalCache(STORAGE_KEYS.FARMS, INITIAL_FARMS);
+    onData(fallback);
+  }
+
+  return () => {
+    if (unsubscribe) unsubscribe();
+  };
+}
+
+/**
+ * Real-time subscription to Centrales de Beneficio (`cacao_templates` category='centrales_beneficio')
+ */
+export function subscribeToCentrales(
+  onData: (centrales: CentralBeneficio[]) => void,
+  onStatusChange?: (isOnline: boolean) => void
+) {
+  const colRef = collection(db, 'cacao_templates');
+  let unsubscribe: (() => void) | null = null;
+
+  try {
+    unsubscribe = onSnapshot(
+      colRef,
+      (snapshot) => {
+        if (onStatusChange) onStatusChange(true);
+        const list: CentralBeneficio[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.category === 'centrales_beneficio') {
+            list.push({
+              id: docSnap.id,
+              title: data.title || data.centralName || 'Central de Beneficio',
+              code: data.code || `CENTRAL-${docSnap.id.slice(0, 4)}`,
+              centralName: data.centralName || data.title || 'Central de Beneficio',
+              description: data.description || '',
+              associationId: data.associationId,
+              associationName: data.associationName,
+              associationCode: data.associationCode,
+              department: data.centralLocation?.department || data.department || 'Santander',
+              municipality: data.centralLocation?.municipality || data.municipality || 'San Vicente de Chucurí',
+              veredaOrAddress: data.centralLocation?.veredaOrAddress || data.veredaOrAddress || '',
+              latitude: data.centralLocation?.latitude || data.latitude,
+              longitude: data.centralLocation?.longitude || data.longitude,
+              altitudeMeters: data.centralLocation?.altitudeMeters || data.altitudeMeters,
+              capacityKgPerMonth: data.processingCapacityKgMonth || data.capacityKgPerMonth || 15000,
+              fermentationBoxesCount: data.fermentationBoxesCount || 10,
+              fermentationType: data.fermentationType || 'Cajones de Madera Escalonados',
+              dryingAreaSqMeters: data.dryingAreaSqMeters || 180,
+              dryingType: data.dryingType || 'Marquesina Solar Tipo Túnel',
+              status: (data.status as any) || 'operativa',
+              activeBatchesCount: data.activeBatchesCount || 2,
+              createdAt: data.createdAt
+            });
+          }
+        });
+
+        if (list.length === 0) {
+          const fallback = readLocalCache(STORAGE_KEYS.CENTRALES, INITIAL_CENTRALES);
+          writeLocalCache(STORAGE_KEYS.CENTRALES, fallback);
+          onData(fallback);
+        } else {
+          writeLocalCache(STORAGE_KEYS.CENTRALES, list);
+          onData(list);
+        }
+      },
+      (err) => {
+        console.warn('Firestore centrales subscription warning, using local cache:', err.message);
+        if (onStatusChange) onStatusChange(false);
+        const fallback = readLocalCache(STORAGE_KEYS.CENTRALES, INITIAL_CENTRALES);
+        onData(fallback);
+      }
+    );
+  } catch (e) {
+    if (onStatusChange) onStatusChange(false);
+    const fallback = readLocalCache(STORAGE_KEYS.CENTRALES, INITIAL_CENTRALES);
+    onData(fallback);
+  }
+
+  return () => {
+    if (unsubscribe) unsubscribe();
+  };
+}
+
+/**
+ * Real-time subscription to Reception Batches (`cacao_receptions`)
+ */
+export function subscribeToReceptions(
+  onData: (receptions: ReceptionBatch[]) => void,
+  onStatusChange?: (isOnline: boolean) => void
+) {
+  const colRef = collection(db, 'cacao_receptions');
+  let unsubscribe: (() => void) | null = null;
+
+  try {
+    unsubscribe = onSnapshot(
+      colRef,
+      (snapshot) => {
+        if (onStatusChange) onStatusChange(true);
+        const list: ReceptionBatch[] = [];
+        snapshot.forEach((docSnap) => {
+          list.push(docSnap.data() as ReceptionBatch);
+        });
+
+        if (list.length === 0) {
+          const fallback = readLocalCache(STORAGE_KEYS.RECEPTIONS, INITIAL_RECEPTIONS);
+          writeLocalCache(STORAGE_KEYS.RECEPTIONS, fallback);
+          onData(fallback);
+        } else {
+          writeLocalCache(STORAGE_KEYS.RECEPTIONS, list);
+          onData(list);
+        }
+      },
+      (err) => {
+        console.warn('Firestore receptions subscription warning, using local cache:', err.message);
+        if (onStatusChange) onStatusChange(false);
+        const fallback = readLocalCache(STORAGE_KEYS.RECEPTIONS, INITIAL_RECEPTIONS);
+        onData(fallback);
+      }
+    );
+  } catch (e) {
+    if (onStatusChange) onStatusChange(false);
+    const fallback = readLocalCache(STORAGE_KEYS.RECEPTIONS, INITIAL_RECEPTIONS);
+    onData(fallback);
+  }
+
+  return () => {
+    if (unsubscribe) unsubscribe();
+  };
+}
+
+/**
+ * Saves a new reception batch in Firestore and updates local cache
+ */
+export async function saveReceptionToFirestore(batch: ReceptionBatch): Promise<void> {
+  try {
+    const docRef = doc(db, 'cacao_receptions', batch.id);
+    await setDoc(docRef, sanitizeForFirestore(batch), { merge: true });
+  } catch (e) {
+    console.warn('Could not write reception to Firestore, storing in local cache:', e);
+  }
+
+  // Update local cache
+  try {
+    const current = readLocalCache<ReceptionBatch[]>(STORAGE_KEYS.RECEPTIONS, INITIAL_RECEPTIONS);
+    const existingIndex = current.findIndex((r) => r.id === batch.id);
+    const updated = existingIndex >= 0 
+      ? current.map((r) => (r.id === batch.id ? batch : r))
+      : [batch, ...current];
+    writeLocalCache(STORAGE_KEYS.RECEPTIONS, updated);
+  } catch (e) {
+    console.error('Error updating local reception cache:', e);
+  }
+}
