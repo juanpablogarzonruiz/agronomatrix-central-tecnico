@@ -18,6 +18,7 @@ import {
   Layers
 } from 'lucide-react';
 import { Association, MainTab } from '../../types';
+import { UserMenu } from '../auth/UserMenu';
 
 interface NavbarProps {
   associations: Association[];
@@ -149,6 +150,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </>
               )}
             </div>
+
+            {/* Authenticated User Menu & 2FA Status */}
+            <UserMenu />
           </div>
         </div>
 

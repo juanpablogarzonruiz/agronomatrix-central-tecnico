@@ -23,9 +23,15 @@ import { CentralListView } from './components/centrales/CentralListView';
 import { ReceptionListView } from './components/reception/ReceptionListView';
 import { NewReceptionModal } from './components/reception/NewReceptionModal';
 import { GeoMapModal } from './components/map/GeoMapModal';
-import { CheckCircle2, AlertCircle } from 'lucide-react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { AuthGate } from './components/auth/AuthGate';
+import { SessionLockModal } from './components/auth/SessionLockModal';
+import { TwoFactorSetupModal } from './components/auth/TwoFactorSetupModal';
+import { CheckCircle2, AlertCircle, ShieldCheck, QrCode, Factory, Building2 } from 'lucide-react';
 
-export const App: React.FC = () => {
+const AppDashboard: React.FC = () => {
+  const { user, isAuthenticated, isLocked } = useAuth();
+
   // Core Data Collections
   const [associations, setAssociations] = useState<Association[]>([]);
   const [producers, setProducers] = useState<Producer[]>([]);
@@ -42,6 +48,7 @@ export const App: React.FC = () => {
   // Modals & Interactive Overlays
   const [isReceptionModalOpen, setIsReceptionModalOpen] = useState<boolean>(false);
   const [isMapModalOpen, setIsMapModalOpen] = useState<boolean>(false);
+  const [isTwoFactorModalOpen, setIsTwoFactorModalOpen] = useState<boolean>(false);
   const [preselectedProducer, setPreselectedProducer] = useState<Producer | null>(null);
   const [preselectedFarm, setPreselectedFarm] = useState<Farm | null>(null);
   const [preselectedCentral, setPreselectedCentral] = useState<CentralBeneficio | null>(null);
@@ -53,6 +60,13 @@ export const App: React.FC = () => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
   };
+
+  // Synchronize user association once authenticated
+  useEffect(() => {
+    if (user && (user as any).associationId) {
+      setSelectedAssociationId((user as any).associationId);
+    }
+  }, [user]);
 
   // Real-time subscriptions
   useEffect(() => {
@@ -210,6 +224,11 @@ export const App: React.FC = () => {
     showToast(`✓ Lote ${batch.batchCode} registrado exitosamente en ${batch.centralName}`);
   };
 
+  // If user is not authorized, ALWAYS display the Auth Gate!
+  if (!user || (!isAuthenticated && !isLocked)) {
+    return <AuthGate />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-300">
       
@@ -239,6 +258,46 @@ export const App: React.FC = () => {
       {/* Main Page Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
+        {/* Operator Security & Role Verification Banner */}
+        {user && (
+          <div className="bg-gradient-to-r from-emerald-950/70 via-slate-900/90 to-amber-950/40 border border-emerald-500/30 rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-amber-600 flex items-center justify-center text-white ring-2 ring-emerald-400/40 shadow-lg shadow-emerald-500/20 shrink-0">
+                <ShieldCheck className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-xs sm:text-sm font-bold text-white">
+                    Operador Autorizado: <span className="text-emerald-300">{user.name}</span>
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    Rol: Central de Beneficio
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40 hidden md:inline-flex">
+                    Google Authenticator 2FA Activo 🛡️
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 flex items-center gap-2 mt-0.5">
+                  <span>Rol: <strong className="text-slate-200">{user.role}</strong></span>
+                  <span className="w-1 h-1 rounded-full bg-slate-600"></span>
+                  <span>Correo: <span className="font-mono-num font-bold text-emerald-400">{user.email}</span></span>
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={() => setIsTwoFactorModalOpen(true)}
+                className="px-3.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 transition cursor-pointer"
+                title="Ver código QR y clave secreta de Google Authenticator"
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span>Credencial 2FA / QR</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Association Overview Banner & KPIs */}
         <AssociationStats
           association={currentAssociation}
@@ -329,6 +388,18 @@ export const App: React.FC = () => {
         centrales={associationCentrales}
       />
 
+      {/* Two-Factor Authenticator Setup Modal */}
+      {user && (
+        <TwoFactorSetupModal
+          isOpen={isTwoFactorModalOpen}
+          onClose={() => setIsTwoFactorModalOpen(false)}
+          user={user}
+        />
+      )}
+
+      {/* Session Lock Screen */}
+      <SessionLockModal />
+
       {/* Floating Toast Notification */}
       {toastMessage && (
         <div className="fixed bottom-5 right-5 z-50 animate-slideUp">
@@ -339,6 +410,14 @@ export const App: React.FC = () => {
         </div>
       )}
     </div>
+  );
+};
+
+export const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <AppDashboard />
+    </AuthProvider>
   );
 };
 

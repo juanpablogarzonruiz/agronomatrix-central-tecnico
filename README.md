@@ -18,6 +18,33 @@ Aplicación web especializada para el rol de **Técnico de la Central de Benefic
 - **Iconografía**: Lucide React
 - **Base de Datos & Sincronización**: Google Cloud Firestore en tiempo real con respaldo local offline (localStorage)
 - **Tipografía**: Plus Jakarta Sans, Playfair Display y JetBrains Mono
+- **Seguridad**: Doble Factor de Autenticación (2FA) obligatorio con Google Authenticator (RFC 6238 TOTP) + Rol estricto de **Central de Beneficio**.
+
+---
+
+## 🔐 Control de Acceso Autorizado (Firebase Authenticator & Google Authenticator)
+
+La aplicación utiliza **exclusivamente las cuentas registradas en la aplicación web administrativa** sincronizadas en tiempo real desde **Google Cloud Firestore** (`records` / `ecosystem_users`) y validadas por el servicio **Firebase Authentication**.
+
+### 🔄 Flujo de Acceso en Dos Pasos
+
+1. **Paso 1: Validación de Correo y Contraseña**:
+   - El operador ingresa su correo electrónico corporativo (o usuario) y contraseña.
+   - Las credenciales se validan contra el servicio **Firebase Authentication** y la base de datos de usuarios del ecosistema.
+   - Se comprueba que la cuenta disponga de permisos para la **Central de Beneficio** (`assignedApps: ['central', ...]`).
+   - Si las credenciales no coinciden o la cuenta no tiene permisos, el acceso se deniega inmediatamente.
+
+2. **Paso 2: Doble Factor con Google Authenticator (TOTP RFC 6238)**:
+   - Una vez superado el primer paso, el sistema solicita el código dinámico de **6 dígitos** generado en **Google Authenticator**.
+   - Se valida contra la clave secreta `totpSecret` de la cuenta guardada en la base de datos.
+   - **Si coincide**: se autoriza el ingreso completo al Portal Técnico de la Central de Beneficio.
+   - **En caso contrario**: se bloquea el acceso.
+
+### 👤 Cuentas Registradas en la Aplicación Administrativa
+
+- **Administrador Raíz**: `juanpablo.garzonruiz@gmail.com` *(Director General / Super Administrador)*.
+- **Administrador Ecosistema**: `mayerlimarroquin@hotmail.com` *(Acceso a Campo, Central y Admin)*.
+- Cualquier otra cuenta registrada o creada desde la sección de seguridad de la aplicación web administrativa con acceso asignado a la **App Central de Beneficio**.
 
 ---
 

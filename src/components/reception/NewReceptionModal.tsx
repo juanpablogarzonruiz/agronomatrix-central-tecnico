@@ -12,6 +12,7 @@ import {
   Building2
 } from 'lucide-react';
 import { Association, Producer, Farm, CentralBeneficio, ReceptionBatch } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 interface NewReceptionModalProps {
   isOpen: boolean;
@@ -40,6 +41,7 @@ export const NewReceptionModal: React.FC<NewReceptionModalProps> = ({
   preselectedCentral,
   currentAssociationId
 }) => {
+  const { user } = useAuth();
   const [selectedCentralId, setSelectedCentralId] = useState<string>('');
   const [selectedProducerId, setSelectedProducerId] = useState<string>('');
   const [selectedFarmId, setSelectedFarmId] = useState<string>('');
@@ -139,7 +141,7 @@ export const NewReceptionModal: React.FC<NewReceptionModalProps> = ({
       brixDegrees: brixDegrees ? parseFloat(brixDegrees) : undefined,
       temperatureArrivalC: tempArrival ? parseFloat(tempArrival) : undefined,
       receivedDate: new Date().toISOString(),
-      technicianName: 'Juan Pablo Garzón Ruiz',
+      technicianName: user?.name || 'Ing. Carlos Andrés Mendoza (Central)',
       status: 'fermentacion',
       notes: notes.trim() || undefined
     };

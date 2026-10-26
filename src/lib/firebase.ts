@@ -8,8 +8,14 @@ import {
   onSnapshot, 
   getDocs 
 } from 'firebase/firestore';
+import { 
+  getAuth, 
+  signInWithEmailAndPassword, 
+  signOut as fbSignOut,
+  User as FirebaseUser
+} from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { Association, Producer, Farm, CentralBeneficio, ReceptionBatch } from '../types';
+import { Association, Producer, Farm, CentralBeneficio, ReceptionBatch, EcosystemUserAccount } from '../types';
 import { 
   INITIAL_ASSOCIATIONS, 
   INITIAL_PRODUCERS, 
@@ -18,12 +24,16 @@ import {
   INITIAL_RECEPTIONS 
 } from '../data/mockData';
 
-// Initialize Firebase
+// Initialize Firebase App
 export const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
+// Initialize Firestore
 export const db = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)'
   ? getFirestore(app, firebaseConfig.firestoreDatabaseId)
   : getFirestore(app);
+
+// Initialize Firebase Authentication
+export const auth = getAuth(app);
 
 // Helper to sanitize undefined values before Firestore writes
 export function sanitizeForFirestore<T>(data: T): T {
@@ -417,5 +427,134 @@ export async function saveReceptionToFirestore(batch: ReceptionBatch): Promise<v
     writeLocalCache(STORAGE_KEYS.RECEPTIONS, updated);
   } catch (e) {
     console.error('Error updating local reception cache:', e);
+  }
+}
+
+export const ECOSYSTEM_USERS_STORAGE_KEY = 'cacao_ecosystem_users';
+export const ECOSYSTEM_USERS_RECORDS_CATEGORY = 'ecosystem_users';
+
+/**
+ * Root Administrator and Seed accounts from the Administrative Web Application
+ */
+export const PRIMARY_ADMIN_EMAIL = 'juanpablo.garzonruiz@gmail.com';
+
+export const INITIAL_ECOSYSTEM_USERS: EcosystemUserAccount[] = [
+  {
+    id: 'user_primary',
+    name: 'Juan Pablo Garzón Ruiz',
+    email: PRIMARY_ADMIN_EMAIL,
+    phone: '+57 312 456 7890',
+    role: 'Director General / Super Administrador',
+    isPrimary: true,
+    assignedApps: ['admin', 'campo', 'central'],
+    password: 'Moquitas2026.',
+    totpSecret: 'CACAOSECRETOPREMIUM234567CACAO23',
+    status: 'active',
+    createdAt: '2026-01-01T00:00:00Z',
+    authProvider: 'firebaseAuth'
+  }
+];
+
+/**
+ * Real-time subscription to Ecosystem Users created in the administrative application
+ * Stored in Firestore collection `records` with category `ecosystem_users` or id `eco_user_*`
+ */
+export function subscribeToEcosystemUsers(
+  onData: (users: EcosystemUserAccount[]) => void
+) {
+  const colRef = collection(db, 'records');
+
+  const unsubscribe = onSnapshot(
+    colRef,
+    (snapshot) => {
+      const list: EcosystemUserAccount[] = [];
+      snapshot.forEach((docSnap) => {
+        const data = docSnap.data();
+        if (data && (data.category === ECOSYSTEM_USERS_RECORDS_CATEGORY || docSnap.id.startsWith('eco_user_'))) {
+          list.push({
+            id: docSnap.id,
+            name: data.name || data.email?.split('@')[0] || 'Operador Central',
+            email: data.email || '',
+            phone: data.phone || '',
+            role: data.role || 'Supervisor Central de Beneficio',
+            isPrimary: data.isPrimary || data.email?.toLowerCase() === PRIMARY_ADMIN_EMAIL,
+            assignedApps: data.assignedApps || ['central'],
+            password: data.password || '',
+            totpSecret: data.totpSecret || 'CACAOSECRETOPREMIUM234567CACAO23',
+            status: (data.status as any) || 'active',
+            avatarUrl: data.avatarUrl,
+            createdAt: data.createdAt,
+            authProvider: data.authProvider || 'firebaseAuth'
+          });
+        }
+      });
+
+      // Merge with initial ecosystem user if not present
+      const hasPrimary = list.some((u) => u.email.toLowerCase() === PRIMARY_ADMIN_EMAIL);
+      const finalList = hasPrimary ? list : [...INITIAL_ECOSYSTEM_USERS, ...list];
+
+      try {
+        localStorage.setItem(ECOSYSTEM_USERS_STORAGE_KEY, JSON.stringify(finalList));
+      } catch (e) {
+        console.warn('Error saving ecosystem users to cache:', e);
+      }
+
+      onData(finalList);
+    },
+    (err) => {
+      console.warn('Ecosystem users subscription warning, falling back to local cache:', err.message);
+      try {
+        const cached = localStorage.getItem(ECOSYSTEM_USERS_STORAGE_KEY);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            onData(parsed);
+            return;
+          }
+        }
+      } catch (e) {}
+      onData(INITIAL_ECOSYSTEM_USERS);
+    }
+  );
+
+  return unsubscribe;
+}
+
+/**
+ * Authenticates user credentials directly using Firebase Authentication.
+ */
+export async function authenticateWithFirebaseAuth(
+  email: string,
+  password: string
+): Promise<{ success: boolean; user?: FirebaseUser; error?: string }> {
+  try {
+    const userCredential = await signInWithEmailAndPassword(auth, email, password);
+    return { success: true, user: userCredential.user };
+  } catch (err: any) {
+    const code = err?.code || '';
+    if (code === 'auth/wrong-password') {
+      return { success: false, error: 'Contraseña incorrecta para la cuenta registrada en Firebase.' };
+    }
+    if (code === 'auth/user-disabled') {
+      return { success: false, error: 'Esta cuenta ha sido suspendida en Firebase.' };
+    }
+    if (code === 'auth/too-many-requests') {
+      return { success: false, error: 'Demasiados intentos fallidos. Intenta más tarde.' };
+    }
+    if (code === 'auth/user-not-found' || code === 'auth/invalid-credential') {
+      return { success: false, error: 'Usuario no encontrado o credencial inválida en Firebase Authentication.' };
+    }
+    return { success: false, error: err?.message || 'Error de autenticación en Firebase' };
+  }
+}
+
+/**
+ * Signs out from Firebase Authentication
+ */
+export async function signOutFirebaseAuth(): Promise<void> {
+  try {
+    await fbSignOut(auth);
+  } catch (e) {
+    console.warn('Error al cerrar sesión en Firebase Auth:', e);
   }
 }
