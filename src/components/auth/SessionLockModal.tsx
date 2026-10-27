@@ -3,7 +3,6 @@ import {
   Lock, 
   ShieldCheck, 
   Clock, 
-  Sparkles, 
   AlertCircle, 
   LogOut, 
   ArrowRight,
@@ -12,30 +11,20 @@ import {
 import { useAuth } from '../../context/AuthContext';
 
 export const SessionLockModal: React.FC = () => {
-  const { user, isLocked, unlockSession, logout, remainingSeconds, getLiveCode } = useAuth();
+  const { user, isLocked, unlockSession, logout, remainingSeconds } = useAuth();
   const [digits, setDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [liveCode, setLiveCode] = useState<string>('');
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   useEffect(() => {
     if (!isLocked) return;
     setDigits(['', '', '', '', '', '']);
     setErrorMessage(null);
-    getLiveCode().then(setLiveCode);
     setTimeout(() => {
       inputRefs.current[0]?.focus();
     }, 200);
-  }, [isLocked, getLiveCode]);
-
-  useEffect(() => {
-    if (!isLocked) return;
-    const interval = setInterval(() => {
-      getLiveCode().then(setLiveCode);
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [isLocked, getLiveCode]);
+  }, [isLocked]);
 
   if (!isLocked || !user) return null;
 
@@ -71,12 +60,6 @@ export const SessionLockModal: React.FC = () => {
     }
   };
 
-  const handleQuickFill = () => {
-    if (liveCode.length === 6) {
-      setDigits(liveCode.split(''));
-      inputRefs.current[5]?.focus();
-    }
-  };
 
   const handleUnlock = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -135,7 +118,9 @@ export const SessionLockModal: React.FC = () => {
             {digits.map((digit, i) => (
               <input
                 key={i}
-                ref={(el) => (inputRefs.current[i] = el)}
+                ref={(el) => {
+                  inputRefs.current[i] = el;
+                }}
                 type="text"
                 inputMode="numeric"
                 pattern="[0-9]*"
@@ -152,16 +137,7 @@ export const SessionLockModal: React.FC = () => {
             ))}
           </div>
 
-          {/* Quick Fill Button */}
-          <div className="mt-3 flex items-center justify-center">
-            <button
-              onClick={handleQuickFill}
-              className="px-2.5 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[11px] font-semibold flex items-center gap-1 transition cursor-pointer"
-            >
-              <Sparkles className="w-3 h-3 text-amber-400" />
-              <span>Pegar Código Actual ({liveCode})</span>
-            </button>
-          </div>
+
         </div>
 
         {/* Error Alert */}

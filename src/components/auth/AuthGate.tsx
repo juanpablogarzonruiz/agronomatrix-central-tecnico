@@ -5,7 +5,6 @@ import {
   KeyRound, 
   QrCode, 
   Smartphone, 
-  Sparkles, 
   AlertCircle, 
   Clock, 
   ArrowRight, 
@@ -32,8 +31,7 @@ export const AuthGate: React.FC = () => {
     cancelTwoFactor, 
     loginError, 
     setLoginError,
-    remainingSeconds,
-    getLiveCode
+    remainingSeconds
   } = useAuth();
 
   // Step 1 Form State
@@ -48,7 +46,6 @@ export const AuthGate: React.FC = () => {
   const [isQRExpanded, setIsQRExpanded] = useState<boolean>(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
   const [copiedSecret, setCopiedSecret] = useState<boolean>(false);
-  const [liveTestCode, setLiveTestCode] = useState<string>('');
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -67,16 +64,6 @@ export const AuthGate: React.FC = () => {
     }
   }, [step, pendingUser]);
 
-  // Keep live code updated in background for easy testing
-  useEffect(() => {
-    if (step === 'totp') {
-      getLiveCode().then(setLiveTestCode);
-      const interval = setInterval(() => {
-        getLiveCode().then(setLiveTestCode);
-      }, 1000);
-      return () => clearInterval(interval);
-    }
-  }, [step, getLiveCode]);
 
   // Handle Step 1 submission
   const handleCredentialsSubmit = async (e: React.FormEvent) => {
@@ -125,12 +112,6 @@ export const AuthGate: React.FC = () => {
     }
   };
 
-  const handleQuickFillCode = () => {
-    if (liveTestCode && liveTestCode.length === 6) {
-      setTotpDigits(liveTestCode.split(''));
-      inputRefs.current[5]?.focus();
-    }
-  };
 
   // Handle Step 2 submission
   const handleTotpSubmit = async (e?: React.FormEvent) => {
@@ -345,7 +326,9 @@ export const AuthGate: React.FC = () => {
                   {totpDigits.map((digit, index) => (
                     <input
                       key={index}
-                      ref={(el) => (inputRefs.current[index] = el)}
+                      ref={(el) => {
+                        inputRefs.current[index] = el;
+                      }}
                       type="text"
                       inputMode="numeric"
                       pattern="[0-9]*"
@@ -363,7 +346,7 @@ export const AuthGate: React.FC = () => {
                 </div>
               </div>
 
-              {/* Quick Actions (QR Scanner & Test Code) */}
+              {/* Quick Actions (QR Scanner) */}
               <div className="pt-2 border-t border-white/5 flex flex-wrap items-center justify-between gap-2 text-xs">
                 <button
                   type="button"
@@ -371,18 +354,12 @@ export const AuthGate: React.FC = () => {
                   className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer"
                 >
                   <QrCode className="w-3.5 h-3.5" />
-                  <span>{isQRExpanded ? 'Ocultar QR' : 'Escanear Código QR en Google Authenticator'}</span>
+                  <span>{isQRExpanded ? 'Ocultar Código QR' : 'Escanear Código QR en Google Authenticator'}</span>
                 </button>
 
-                <button
-                  type="button"
-                  onClick={handleQuickFillCode}
-                  className="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer"
-                  title="Autocompletar con el código dinámico generado en tiempo real"
-                >
-                  <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Pegar Código Actual ({liveTestCode})</span>
-                </button>
+                <span className="text-[11px] text-slate-400">
+                  Consulta el código en tu app móvil
+                </span>
               </div>
 
               {/* Expandable QR Box */}
