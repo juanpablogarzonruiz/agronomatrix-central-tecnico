@@ -2,25 +2,18 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   ShieldCheck, 
   Lock, 
-  KeyRound, 
-  QrCode, 
   Smartphone, 
   AlertCircle, 
   Clock, 
   ArrowRight, 
   Factory, 
   BadgeCheck,
-  Building2,
-  Copy,
-  Check,
-  User,
   Mail,
   Eye,
   EyeOff,
   ArrowLeft
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { buildOtpAuthUri, generateQRCodeDataUrl } from '../../lib/totp';
 
 export const AuthGate: React.FC = () => {
   const { 
@@ -43,9 +36,6 @@ export const AuthGate: React.FC = () => {
   // Step 2 TOTP Form State
   const [totpDigits, setTotpDigits] = useState<string[]>(['', '', '', '', '', '']);
   const [isVerifyingTotp, setIsVerifyingTotp] = useState<boolean>(false);
-  const [isQRExpanded, setIsQRExpanded] = useState<boolean>(false);
-  const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
-  const [copiedSecret, setCopiedSecret] = useState<boolean>(false);
 
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -56,13 +46,8 @@ export const AuthGate: React.FC = () => {
       setTimeout(() => {
         inputRefs.current[0]?.focus();
       }, 200);
-
-      if (pendingUser) {
-        const uri = buildOtpAuthUri(pendingUser.email, pendingUser.totpSecret, 'Agronomatrix');
-        generateQRCodeDataUrl(uri).then(setQrCodeUrl);
-      }
     }
-  }, [step, pendingUser]);
+  }, [step]);
 
 
   // Handle Step 1 submission
@@ -134,14 +119,6 @@ export const AuthGate: React.FC = () => {
     }
   };
 
-  const activeSecret = pendingUser?.totpSecret || 'CACAOSECRETOPREMIUM234567CACAO23';
-  const formattedSecret = activeSecret.match(/.{1,4}/g)?.join(' ') || activeSecret;
-
-  const handleCopySecret = () => {
-    navigator.clipboard.writeText(activeSecret);
-    setCopiedSecret(true);
-    setTimeout(() => setCopiedSecret(false), 2000);
-  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 relative overflow-hidden selection:bg-emerald-500/30 selection:text-emerald-300">
@@ -346,64 +323,12 @@ export const AuthGate: React.FC = () => {
                 </div>
               </div>
 
-              {/* Quick Actions (QR Scanner) */}
-              <div className="pt-2 border-t border-white/5 flex flex-wrap items-center justify-between gap-2 text-xs">
-                <button
-                  type="button"
-                  onClick={() => setIsQRExpanded(!isQRExpanded)}
-                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-emerald-500/30 text-emerald-300 text-[11px] font-semibold flex items-center gap-1.5 transition cursor-pointer"
-                >
-                  <QrCode className="w-3.5 h-3.5" />
-                  <span>{isQRExpanded ? 'Ocultar Código QR' : 'Escanear Código QR en Google Authenticator'}</span>
-                </button>
-
-                <span className="text-[11px] text-slate-400">
-                  Consulta el código en tu app móvil
-                </span>
+              {/* Información de acceso con 2FA */}
+              <div className="pt-3 border-t border-white/10 text-center">
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  Ingresa el código dinámico de 6 dígitos generado en la aplicación <strong className="text-emerald-300 font-semibold">Google Authenticator</strong> vinculada a tu cuenta.
+                </p>
               </div>
-
-              {/* Expandable QR Box */}
-              {isQRExpanded && (
-                <div className="bg-slate-900/95 border border-emerald-500/30 rounded-2xl p-4 space-y-3 animate-fadeIn">
-                  <div className="flex flex-col sm:flex-row items-center gap-4">
-                    <div className="p-2 bg-white rounded-xl shadow-lg ring-2 ring-emerald-500/30 shrink-0">
-                      {qrCodeUrl ? (
-                        <img
-                          src={qrCodeUrl}
-                          alt="Google Authenticator QR Code"
-                          className="w-32 h-32 object-contain rounded-md"
-                        />
-                      ) : (
-                        <div className="w-32 h-32 flex items-center justify-center text-slate-700 text-[10px]">
-                          Cargando QR...
-                        </div>
-                      )}
-                    </div>
-                    <div className="space-y-2 text-[11px] flex-1">
-                      <p className="text-slate-300 leading-relaxed">
-                        1. Abre <strong>Google Authenticator</strong> en tu celular.<br />
-                        2. Toca <strong>+</strong> y selecciona <strong>Escanear código QR</strong>.<br />
-                        3. Apunta al código QR de la izquierda.
-                      </p>
-                      <div>
-                        <span className="text-[10px] text-slate-400 block font-bold uppercase">
-                          Clave Secreta Manual (Base32):
-                        </span>
-                        <div className="mt-1 flex items-center justify-between bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 font-mono-num text-[11px] font-bold text-emerald-400">
-                          <span className="tracking-wider">{formattedSecret}</span>
-                          <button
-                            type="button"
-                            onClick={handleCopySecret}
-                            className="p-1 hover:text-white transition cursor-pointer"
-                          >
-                            {copiedSecret ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Error Alert */}
               {loginError && (
