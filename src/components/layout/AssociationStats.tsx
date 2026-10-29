@@ -114,8 +114,8 @@ export const AssociationStats: React.FC<AssociationStatsProps> = ({
         </div>
       </div>
 
-      {/* 4 Dynamic Metric KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+      {/* 3 Dynamic Metric KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
         
         {/* KPI 1: Productores */}
         <div 
@@ -191,31 +191,6 @@ export const AssociationStats: React.FC<AssociationStatsProps> = ({
             <span>{totalBoxes} cajones</span>
             <span>·</span>
             <span>{totalDryingArea} m² secado</span>
-          </div>
-        </div>
-
-        {/* KPI 4: Capacidad Mensual */}
-        <div 
-          onClick={() => onSelectTab('centrales')}
-          className="glass-panel rounded-2xl p-4 hover:-translate-y-0.5 transition cursor-pointer group"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold text-slate-600 uppercase tracking-wider">
-              Capacidad Mensual
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-100 border border-emerald-400 shadow-[2px_2px_0px_#059669] flex items-center justify-center text-emerald-800 group-hover:bg-[#047857] group-hover:text-white transition">
-              <Scale className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono-num text-slate-900">
-              {(totalCapacityKg / 1000).toFixed(0)}k
-            </span>
-            <span className="text-xs text-slate-500 font-mono-num font-medium">kg baba/mes</span>
-          </div>
-          <div className="mt-2 flex items-center gap-1.5 text-[11px] text-[#059669] font-semibold">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>Potencial: {(totalCapacityKg * 0.36 / 1000).toFixed(1)}k kg grano seco</span>
           </div>
         </div>
       </div>

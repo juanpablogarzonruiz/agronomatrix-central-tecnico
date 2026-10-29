@@ -144,7 +144,7 @@ export const AuthGate: React.FC = () => {
             </p>
 
             <h1 className="mt-4 font-serif-cacao font-bold text-3xl sm:text-[38px] text-white tracking-tight leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]">
-              Cacaoanalytica
+              Cacao Analítica
             </h1>
 
             <div className="mt-3 space-y-0.5 text-xs font-extrabold tracking-[0.15em] uppercase">
@@ -375,7 +375,7 @@ export const AuthGate: React.FC = () => {
       {/* Bottom Footer Text */}
       <div className="mt-6 text-center">
         <p className="text-xs sm:text-sm font-bold text-slate-600 tracking-wide">
-          Agronomatrix - CACAOANALYTICA
+          Agronomatrix - Cacao Analítica
         </p>
       </div>
     </div>

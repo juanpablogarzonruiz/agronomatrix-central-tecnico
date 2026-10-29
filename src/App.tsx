@@ -40,7 +40,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { AuthGate } from './components/auth/AuthGate';
 import { SessionLockModal } from './components/auth/SessionLockModal';
 import { TwoFactorSetupModal } from './components/auth/TwoFactorSetupModal';
-import { CheckCircle2, ShieldCheck, QrCode } from 'lucide-react';
+import { CheckCircle2, ShieldCheck, QrCode, Building2, ChevronDown } from 'lucide-react';
 
 const AppDashboard: React.FC = () => {
   const { user, isAuthenticated, isLocked } = useAuth();
@@ -386,45 +386,56 @@ const AppDashboard: React.FC = () => {
       {/* Main Page Container */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
         
-        {/* Operator Security & Role Verification Banner */}
-        {user && (
-          <div className="bg-gradient-to-r from-[#06694b] via-[#05583f] to-[#033b2a] text-white border-2 border-slate-900 shadow-[5px_5px_0px_#0f172a] rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3.5">
-              <div className="w-11 h-11 rounded-2xl bg-white/15 border border-white/30 shadow-[2px_2px_0px_rgba(0,0,0,0.3)] flex items-center justify-center text-white shrink-0">
-                <ShieldCheck className="w-6 h-6 text-[#6ee7b7]" />
-              </div>
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-xs sm:text-sm font-bold text-white">
-                    Operador Autorizado: <span className="text-[#6ee7b7]">{user.name}</span>
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-white/15 text-emerald-100 border border-white/25">
-                    Rol: Central de Beneficio
-                  </span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-amber-400/20 text-amber-200 border border-amber-300/40 hidden md:inline-flex">
-                    Google Authenticator 2FA Activo 🛡️
-                  </span>
-                </div>
-                <p className="text-xs text-emerald-100/90 flex items-center gap-2 mt-0.5">
-                  <span>Rol: <strong className="text-white">{user.role}</strong></span>
-                  <span className="w-1 h-1 rounded-full bg-emerald-300"></span>
-                  <span>Correo: <span className="font-mono-num font-bold text-[#6ee7b7]">{user.email}</span></span>
-                </p>
-              </div>
+        {/* Sección de Selección de Asociación */}
+        <div className="bg-white rounded-2xl p-4 sm:p-5 border-2 border-slate-900 shadow-[4px_4px_0px_#0f172a] flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-emerald-100 border-2 border-emerald-600 shadow-[2px_2px_0px_#047857] flex items-center justify-center text-[#047857] shrink-0">
+              <Building2 className="w-6 h-6" />
             </div>
-
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                onClick={() => setIsTwoFactorModalOpen(true)}
-                className="px-3.5 py-2 rounded-xl bg-white text-slate-900 hover:bg-emerald-50 border-2 border-slate-900 shadow-[2.5px_3px_0px_#0f172a] active:translate-x-[1px] active:translate-y-[1px] text-xs font-bold flex items-center gap-1.5 transition cursor-pointer"
-                title="Ver código QR y clave secreta de Google Authenticator"
-              >
-                <QrCode className="w-3.5 h-3.5 text-[#047857]" />
-                <span>Credencial 2FA / QR</span>
-              </button>
+            <div>
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#059669] block">
+                Asociación Activa Seleccionada
+              </span>
+              <h2 className="text-base sm:text-lg font-bold text-slate-900 line-clamp-1">
+                {currentAssociation?.name || 'Seleccionar Asociación'}
+              </h2>
+              {currentAssociation && (
+                <p className="text-xs text-slate-600 flex flex-wrap items-center gap-2 mt-0.5">
+                  <span className="font-mono-num font-bold text-[#047857]">{currentAssociation.code}</span>
+                  <span>·</span>
+                  <span>{currentAssociation.municipality}, {currentAssociation.department}</span>
+                  {currentAssociation.certifiedHectares ? (
+                    <>
+                      <span>·</span>
+                      <span className="text-amber-800 font-semibold">{currentAssociation.certifiedHectares} Ha Certificadas</span>
+                    </>
+                  ) : null}
+                </p>
+              )}
             </div>
           </div>
-        )}
+
+          <div className="flex items-center gap-2 shrink-0">
+            <label htmlFor="main-assoc-select" className="text-xs font-bold text-slate-700 whitespace-nowrap">
+              Cambiar Asociación:
+            </label>
+            <div className="relative">
+              <select
+                id="main-assoc-select"
+                value={activeAssociationId}
+                onChange={(e) => setSelectedAssociationId(e.target.value)}
+                className="rounded-xl px-4 py-2.5 text-xs font-extrabold text-slate-900 input-3d-emerald cursor-pointer pr-8 appearance-none bg-emerald-50"
+              >
+                {associations.map((assoc) => (
+                  <option key={assoc.id} value={assoc.id} className="bg-white text-slate-900 font-bold">
+                    {assoc.name} ({assoc.code} · {assoc.department})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="w-4 h-4 text-[#047857] absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            </div>
+          </div>
+        </div>
 
         {/* Association Overview Banner & KPIs */}
         <AssociationStats
@@ -511,7 +522,7 @@ const AppDashboard: React.FC = () => {
       {/* Footer */}
       <footer className="border-t-2 border-slate-300 py-6 px-4 bg-white text-xs text-slate-600 text-center">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="font-semibold">© {new Date().getFullYear()} Agronomatrix · Cacaoanalytica · Central de Beneficio</p>
+          <p className="font-semibold">© {new Date().getFullYear()} Agronomatrix · Cacao Analítica</p>
           <p className="flex items-center gap-1.5 text-slate-700 font-semibold">
             <span className="w-2 h-2 rounded-full bg-[#059669]"></span>
             <span>Trazabilidad de Cacao Fino de Aroma · Colombia</span>

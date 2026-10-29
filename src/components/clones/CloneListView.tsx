@@ -22,7 +22,7 @@ export const CloneListView: React.FC<CloneListViewProps> = ({
   clones,
   allFarms
 }) => {
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
 
   // Compute how many trees and farms have each clone across the entire ecosystem
   const getCloneStats = (cloneCode: string) => {

@@ -38,7 +38,7 @@ export const FarmListView: React.FC<FarmListViewProps> = ({
   onEditFarm,
   onDeleteFarm
 }) => {
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [selectedFarm, setSelectedFarm] = useState<Farm | null>(null);
   const [selectedMuniFilter, setSelectedMuniFilter] = useState<string>('all');
   const [farmToDelete, setFarmToDelete] = useState<Farm | null>(null);

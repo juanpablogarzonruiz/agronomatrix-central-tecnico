@@ -42,7 +42,7 @@ export const ProducerListView: React.FC<ProducerListViewProps> = ({
   onEditProducer,
   onDeleteProducer
 }) => {
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [selectedProducer, setSelectedProducer] = useState<Producer | null>(null);
   const [producerToDelete, setProducerToDelete] = useState<Producer | null>(null);
 

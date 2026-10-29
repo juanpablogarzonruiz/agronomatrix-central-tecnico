@@ -29,7 +29,7 @@ export const CentralListView: React.FC<CentralListViewProps> = ({
   selectedAssociationName,
   onStartReception
 }) => {
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
   const [selectedCentral, setSelectedCentral] = useState<CentralBeneficio | null>(null);
 
   const exportToCSV = () => {
