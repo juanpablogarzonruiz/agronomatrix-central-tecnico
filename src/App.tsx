@@ -230,7 +230,7 @@ const AppDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-300">
+    <div className="app-shell min-h-screen bg-slate-950 text-slate-100 selection:bg-emerald-500/30 selection:text-emerald-300">
       
       {/* Top Navigation */}
       <Navbar
@@ -256,11 +256,12 @@ const AppDashboard: React.FC = () => {
       />
 
       {/* Main Page Container */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <div className="app-main">
+      <main className="app-content flex-1 w-full">
         
         {/* Operator Security & Role Verification Banner */}
         {user && (
-          <div className="bg-gradient-to-r from-emerald-950/70 via-slate-900/90 to-amber-950/40 border border-emerald-500/30 rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="app-security-banner bg-gradient-to-r from-emerald-950/70 via-slate-900/90 to-amber-950/40 border border-emerald-500/30 rounded-2xl p-4 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3.5">
               <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-amber-600 flex items-center justify-center text-white ring-2 ring-emerald-400/40 shadow-lg shadow-emerald-500/20 shrink-0">
                 <ShieldCheck className="w-6 h-6 text-white" />
@@ -363,6 +364,7 @@ const AppDashboard: React.FC = () => {
           </p>
         </div>
       </footer>
+      </div>
 
       {/* New Reception Modal */}
       <NewReceptionModal
