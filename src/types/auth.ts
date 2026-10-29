@@ -8,12 +8,12 @@ export interface EcosystemUserAccount {
   role: string;
   isPrimary?: boolean;
   assignedApps?: EcosystemAppId[];
-  password?: string;
   totpSecret?: string;
   status: 'active' | 'suspended';
   avatarUrl?: string;
   createdAt?: string;
   authProvider?: string;
+  firebaseUid?: string;
 }
 
 export type AuthUser = EcosystemUserAccount;

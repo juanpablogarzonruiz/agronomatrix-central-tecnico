@@ -6,11 +6,20 @@ import {
   setDoc, 
   deleteDoc, 
   onSnapshot, 
-  getDocs 
+  getDocs,
+  getDocsFromServer,
+  query,
+  where
 } from 'firebase/firestore';
 import { 
   getAuth, 
   signInWithEmailAndPassword, 
+  GoogleAuthProvider,
+  signInWithPopup,
+  linkWithPopup,
+  reauthenticateWithCredential,
+  EmailAuthProvider,
+  getAdditionalUserInfo,
   signOut as fbSignOut,
   User as FirebaseUser
 } from 'firebase/auth';
@@ -34,6 +43,52 @@ export const db = firebaseConfig.firestoreDatabaseId && firebaseConfig.firestore
 
 // Initialize Firebase Authentication
 export const auth = getAuth(app);
+
+export async function resolveAuthorizedCentralProfile(uid: string, email?: string): Promise<EcosystemUserAccount | null> {
+  const records = collection(db, 'records');
+  let snapshot = await getDocsFromServer(query(records, where('firebaseUid', '==', uid)));
+  if (snapshot.empty && email) {
+    snapshot = await getDocsFromServer(query(records, where('email', '==', email)));
+  }
+  if (snapshot.size !== 1) return null;
+  const docSnap = snapshot.docs[0];
+  const data = docSnap.data();
+  if (data.category !== 'ecosystem_users' && data.category !== 'ecosystem_user'
+    && !docSnap.id.startsWith('eco_user_')) return null;
+  if ((data.firebaseUid && data.firebaseUid !== uid)
+    || (email && String(data.email || '').trim().toLowerCase() !== email.trim().toLowerCase())
+    || data.status === 'suspended' || typeof data.email !== 'string') return null;
+  const isPrimary = data.isPrimary === true || data.email.trim().toLowerCase() === PRIMARY_ADMIN_EMAIL;
+  const hasCentralAccess = isPrimary
+    || (Array.isArray(data.assignedApps) && data.assignedApps.includes('central'));
+  if (!hasCentralAccess) return null;
+  return {
+    ...data,
+    id: docSnap.id,
+    name: data.name || data.email.split('@')[0] || 'Operador Central',
+    role: data.role || 'Supervisor Central de Beneficio',
+    firebaseUid: uid
+  } as EcosystemUserAccount;
+}
+
+export async function signInWithGooglePopup() {
+  const credential = await signInWithPopup(auth, new GoogleAuthProvider());
+  return { user: credential.user, isNewUser: getAdditionalUserInfo(credential)?.isNewUser ?? false };
+}
+
+export async function linkGoogleToCurrentUser(password: string): Promise<string> {
+  const current = auth.currentUser;
+  if (!current?.email) throw new Error('Inicia sesión primero con tu cuenta Agronomatrix.');
+  const profile = await resolveAuthorizedCentralProfile(current.uid);
+  if (!profile) throw new Error('El UID no corresponde a un perfil activo autorizado para Central.');
+  await reauthenticateWithCredential(current, EmailAuthProvider.credential(current.email, password));
+  const linked = await linkWithPopup(current, new GoogleAuthProvider());
+  if (linked.user.uid !== current.uid) {
+    await fbSignOut(auth);
+    throw new Error('La vinculación no conservó el UID de Firebase. Se cerró la sesión por seguridad.');
+  }
+  return linked.user.uid;
+}
 
 // Helper to sanitize undefined values before Firestore writes
 export function sanitizeForFirestore<T>(data: T): T {
@@ -447,7 +502,6 @@ export const INITIAL_ECOSYSTEM_USERS: EcosystemUserAccount[] = [
     role: 'Director General / Super Administrador',
     isPrimary: true,
     assignedApps: ['admin', 'campo', 'central'],
-    password: 'Moquitas2026.',
     totpSecret: 'CACAOSECRETOPREMIUM234567CACAO23',
     status: 'active',
     createdAt: '2026-01-01T00:00:00Z',
@@ -479,12 +533,12 @@ export function subscribeToEcosystemUsers(
             role: data.role || 'Supervisor Central de Beneficio',
             isPrimary: data.isPrimary || data.email?.toLowerCase() === PRIMARY_ADMIN_EMAIL,
             assignedApps: data.assignedApps || ['central'],
-            password: data.password || '',
             totpSecret: data.totpSecret || 'CACAOSECRETOPREMIUM234567CACAO23',
             status: (data.status as any) || 'active',
             avatarUrl: data.avatarUrl,
             createdAt: data.createdAt,
-            authProvider: data.authProvider || 'firebaseAuth'
+            authProvider: data.authProvider || 'firebaseAuth',
+            firebaseUid: data.firebaseUid
           });
         }
       });

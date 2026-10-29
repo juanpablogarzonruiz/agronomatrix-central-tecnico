@@ -16,7 +16,8 @@ import { useAuth } from '../../context/AuthContext';
 import { TwoFactorSetupModal } from './TwoFactorSetupModal';
 
 export const UserMenu: React.FC = () => {
-  const { user, logout, lockSession } = useAuth();
+  const { user, logout, lockSession, linkGoogleAccount } = useAuth();
+  const [googleMessage, setGoogleMessage] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState<boolean>(false);
   const [showQRModal, setShowQRModal] = useState<boolean>(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -100,6 +101,15 @@ export const UserMenu: React.FC = () => {
           </div>
 
           <div className="border-t border-white/5 pt-1 space-y-0.5">
+            <button onClick={async () => {
+              const password = window.prompt('Confirma tu contraseña de Agronomatrix para vincular Google:');
+              if (!password) return;
+              const result = await linkGoogleAccount(password);
+              setGoogleMessage(result.error || 'Google quedó vinculado.');
+            }} className="w-full flex items-center gap-2 px-2.5 py-2 rounded-xl text-slate-200 hover:text-white hover:bg-slate-800 transition cursor-pointer text-left">
+              <KeyRound className="w-3.5 h-3.5 text-blue-400" /><span>Vincular cuenta Google</span>
+            </button>
+            {googleMessage && <p role="status" className="px-2 py-1 text-[10px] text-amber-300">{googleMessage}</p>}
             {/* View 2FA QR Code */}
             <button
               onClick={() => {

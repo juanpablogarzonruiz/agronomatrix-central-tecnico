@@ -5,7 +5,11 @@ import {
   authenticateWithFirebaseAuth, 
   signOutFirebaseAuth,
   PRIMARY_ADMIN_EMAIL,
-  INITIAL_ECOSYSTEM_USERS
+  INITIAL_ECOSYSTEM_USERS,
+  auth,
+  resolveAuthorizedCentralProfile,
+  signInWithGooglePopup,
+  linkGoogleToCurrentUser
 } from '../lib/firebase';
 import { verifyTotpToken, getCurrentTotp, getRemainingTOTPSeconds, DEFAULT_TOTP_SECRET } from '../lib/totp';
 
@@ -30,6 +34,8 @@ interface AuthContextType {
   lockSession: () => void;
   unlockSession: (totpCode: string) => Promise<{ success: boolean; error?: string }>;
   getLiveCode: () => Promise<string>;
+  signInGoogle: () => Promise<{ success: boolean; error?: string }>;
+  linkGoogleAccount: (password: string) => Promise<{ success: boolean; error?: string }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -52,6 +58,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLocked, setIsLocked] = useState<boolean>(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number>(getRemainingTOTPSeconds());
+  const [pendingGoogleUid, setPendingGoogleUid] = useState<string | null>(null);
+  const [pendingGoogleLogin, setPendingGoogleLogin] = useState(false);
+  const googleOperationalAccessEnabled = false;
 
   // Subscribe to real-time users from Firestore (collection `records`, category `ecosystem_users`)
   useEffect(() => {
@@ -104,7 +113,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     async (emailInput: string, passwordInput: string): Promise<{ success: boolean; error?: string }> => {
       setLoginError(null);
       const cleanEmail = (emailInput || '').trim().toLowerCase();
-      const cleanPass = (passwordInput || '').trim();
+      // Firebase passwords are exact strings; do not trim or compare against Firestore.
+      const cleanPass = passwordInput || '';
 
       if (!cleanEmail) {
         const err = 'Por favor ingresa tu correo electrónico corporativo registrado.';
@@ -118,62 +128,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: err };
       }
 
-      // 1. Buscar coincidencia EXACTA del correo en las cuentas del ecosistema
-      const matchedUser = ecosystemUsers.find(
-        (u) => (u.email || '').trim().toLowerCase() === cleanEmail
-      );
-
-      if (!matchedUser) {
-        const err = 'El correo electrónico no coincide con ninguna cuenta registrada en el ecosistema.';
-        setLoginError(err);
-        return { success: false, error: err };
-      }
-
-      // 2. Verificar coincidencia EXACTA de la contraseña con la guardada en la base de datos
-      const expectedPassword = (matchedUser.password || '').trim();
-      if (!expectedPassword || cleanPass !== expectedPassword) {
-        const err = 'La contraseña ingresada no coincide con la registrada para esta cuenta.';
-        setLoginError(err);
-        return { success: false, error: err };
-      }
-
-      // 3. Validar estado de la cuenta
-      if (matchedUser.status === 'suspended') {
-        const err = 'Esta cuenta se encuentra temporalmente suspendida en el sistema.';
-        setLoginError(err);
-        return { success: false, error: err };
-      }
-
-      // 4. Validar que la cuenta tenga permisos para la Central de Beneficio
-      const hasCentralAccess =
-        matchedUser.isPrimary ||
-        (matchedUser.assignedApps && matchedUser.assignedApps.includes('central')) ||
-        (matchedUser.assignedApps && matchedUser.assignedApps.includes('admin')) ||
-        matchedUser.role.toLowerCase().includes('central') ||
-        matchedUser.role.toLowerCase().includes('admin') ||
-        matchedUser.role.toLowerCase().includes('director');
-
-      if (!hasCentralAccess) {
-        const err = 'Acceso denegado: Esta cuenta no tiene permisos para acceder a la Central de Beneficio.';
-        setLoginError(err);
-        return { success: false, error: err };
-      }
-
-      // 5. Sincronizar / validar con el servicio de Firebase Authentication
+      // Firebase Authentication is the sole authority for email and password.
       try {
-        await authenticateWithFirebaseAuth(cleanEmail, cleanPass);
-      } catch (fbErr) {
-        console.warn('Firebase Auth sincronización:', fbErr);
+        const firebaseResult = await authenticateWithFirebaseAuth(cleanEmail, cleanPass);
+        if (!firebaseResult.success || !firebaseResult.user) {
+          const err = firebaseResult.error || 'No se pudo validar la cuenta en Firebase Authentication.';
+          setLoginError(err);
+          return { success: false, error: err };
+        }
+
+        const firebaseUser = firebaseResult.user;
+        const profile = await resolveAuthorizedCentralProfile(firebaseUser.uid, firebaseUser.email || cleanEmail);
+        if (!profile) {
+          await signOutFirebaseAuth();
+          const err = 'Firebase validó tus credenciales, pero no se encontró un perfil activo autorizado para Central Técnica en Firestore.';
+          setLoginError(err);
+          return { success: false, error: err };
+        }
+
+        setPendingUser(profile);
+        setStep('totp');
+        setLoginError(null);
+        return { success: true };
+      } catch (fbErr: any) {
+        await signOutFirebaseAuth();
+        const err = fbErr?.message || 'No fue posible completar la autenticación con Firebase.';
+        setLoginError(err);
+        return { success: false, error: err };
       }
-
-      // Solo si el correo Y la contraseña coinciden EXACTAMENTE, pasar a preguntar el código de Google Authenticator
-      setPendingUser(matchedUser);
-      setStep('totp');
-      setLoginError(null);
-
-      return { success: true };
     },
-    [ecosystemUsers]
+    []
   );
 
   /**
@@ -199,11 +183,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       // Código verificado exitosamente: Dejar ingresar a la aplicación
+      if (pendingGoogleLogin && !googleOperationalAccessEnabled) {
+        await signOutFirebaseAuth();
+        setPendingUser(null);
+        setPendingGoogleUid(null);
+        setPendingGoogleLogin(false);
+        setStep('credentials');
+        const err = 'Google fue autenticado y el perfil pasó las comprobaciones locales, pero el acceso operativo permanece bloqueado hasta verificar las reglas Firestore desplegadas.';
+        setLoginError(err);
+        return { success: false, error: err };
+      }
       const now = new Date();
       const expires = new Date(now.getTime() + SESSION_DURATION_HOURS * 60 * 60 * 1000);
 
       const newSession: AuthSession = {
         user: pendingUser,
+        firebaseUid: pendingGoogleUid || pendingUser.firebaseUid,
         token: `agronomatrix_auth_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
         authenticatedAt: now.toISOString(),
         expiresAt: expires.toISOString(),
@@ -218,20 +213,78 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUser(pendingUser);
       setSession(newSession);
       setPendingUser(null);
+      setPendingGoogleUid(null);
+      setPendingGoogleLogin(false);
       setStep('credentials');
       setIsLocked(false);
       setLoginError(null);
 
       return { success: true };
     },
-    [pendingUser]
+    [pendingUser, pendingGoogleLogin, pendingGoogleUid]
   );
 
+  const signInGoogle = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
+    setLoginError(null);
+    try {
+      const result = await signInWithGooglePopup();
+      if (result.isNewUser) {
+        await signOutFirebaseAuth();
+        return { success: false, error: 'Esta identidad Google no estaba vinculada a una cuenta existente de Agronomatrix.' };
+      }
+      const profile = await resolveAuthorizedCentralProfile(result.user.uid);
+      const localProfile = profile && ecosystemUsers.find((item) => item.id === profile.id
+        && item.firebaseUid === result.user.uid && item.status === 'active'
+        && item.assignedApps?.includes('central'));
+      if (!profile || !localProfile) {
+        await signOutFirebaseAuth();
+        return { success: false, error: 'No existe un perfil activo con este UID y autorización para Central.' };
+      }
+      setPendingUser({ ...profile, totpSecret: localProfile.totpSecret });
+      setPendingGoogleUid(result.user.uid);
+      setPendingGoogleLogin(true);
+      setStep('totp');
+      return { success: true };
+    } catch (error: any) {
+      await signOutFirebaseAuth();
+      const code = error?.code;
+      const message = code === 'auth/popup-closed-by-user' ? 'Se canceló el inicio con Google.'
+        : code === 'auth/popup-blocked' ? 'El navegador bloqueó la ventana de Google.'
+        : code === 'auth/provider-already-linked' ? 'Google ya está vinculado a esta cuenta.'
+        : code === 'auth/credential-already-in-use' || code === 'auth/account-exists-with-different-credential'
+          ? 'Esta cuenta Google está asociada a otra identidad Firebase. Contacta al administrador.'
+          : error?.message || 'No se pudo iniciar sesión con Google.';
+      setLoginError(message);
+      return { success: false, error: message };
+    }
+  }, []);
+
+  const linkGoogleAccount = useCallback(async (password: string) => {
+    try {
+      if (!user?.firebaseUid || auth.currentUser?.uid !== user.firebaseUid) {
+        throw new Error('La sesión Firebase no coincide con el UID guardado en el perfil.');
+      }
+      const uid = await linkGoogleToCurrentUser(password);
+      if (uid !== user.firebaseUid) throw new Error('El UID cambió durante la vinculación.');
+      return { success: true, error: `Google quedó vinculado a la identidad Firebase ${uid}.` };
+    } catch (error: any) {
+      const code = error?.code;
+      const message = code === 'auth/provider-already-linked' ? 'Google ya está vinculado a esta cuenta.'
+        : code === 'auth/credential-already-in-use' ? 'Esta cuenta Google ya pertenece a otra identidad Firebase.'
+        : code === 'auth/popup-closed-by-user' ? 'Se canceló la vinculación de Google.'
+        : error?.message || 'No se pudo vincular Google.';
+      return { success: false, error: message };
+    }
+  }, [user]);
+
   const cancelTwoFactor = useCallback(() => {
+    signOutFirebaseAuth().catch(() => {});
     setPendingUser(null);
+    setPendingGoogleUid(null);
+    setPendingGoogleLogin(false);
     setStep('credentials');
     setLoginError(null);
-  }, []);
+  }, [pendingGoogleLogin]);
 
   const logout = useCallback(() => {
     signOutFirebaseAuth();
@@ -288,6 +341,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     lockSession,
     unlockSession,
     getLiveCode,
+    signInGoogle,
+    linkGoogleAccount,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

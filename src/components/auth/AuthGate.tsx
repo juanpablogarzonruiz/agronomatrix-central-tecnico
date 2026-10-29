@@ -24,7 +24,8 @@ export const AuthGate: React.FC = () => {
     cancelTwoFactor, 
     loginError, 
     setLoginError,
-    remainingSeconds
+    remainingSeconds,
+    signInGoogle
   } = useAuth();
 
   // Step 1 Form State
@@ -179,6 +180,7 @@ export const AuthGate: React.FC = () => {
           {/* PASO 1: CORREO Y CONTRASEÑA EN FIREBASE AUTHENTICATION          */}
           {/* ============================================================== */}
           {step === 'credentials' && (
+            <>
             <form onSubmit={handleCredentialsSubmit} className="mt-6 space-y-5">
               
               {/* Email Input */}
@@ -253,6 +255,13 @@ export const AuthGate: React.FC = () => {
                 )}
               </button>
             </form>
+            <div className="mt-4 border-t border-white/10 pt-4">
+              <button type="button" onClick={() => void signInGoogle()} className="w-full py-3 rounded-xl bg-white text-slate-900 font-bold text-sm flex items-center justify-center gap-3 hover:bg-slate-100 transition cursor-pointer">
+                <span className="text-base font-black text-blue-600">G</span><span>Continuar con Google</span>
+              </button>
+              <p className="mt-2 text-center text-[10px] text-amber-300">El acceso operativo está sujeto a verificación de seguridad.</p>
+            </div>
+            </>
           )}
 
           {/* ============================================================== */}
