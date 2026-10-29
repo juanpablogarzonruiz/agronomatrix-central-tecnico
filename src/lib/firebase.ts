@@ -15,13 +15,24 @@ import {
   User as FirebaseUser
 } from 'firebase/auth';
 import firebaseConfig from '../../firebase-applet-config.json';
-import { Association, Producer, Farm, CentralBeneficio, ReceptionBatch, EcosystemUserAccount } from '../types';
+import { 
+  Association, 
+  Producer, 
+  Farm, 
+  CentralBeneficio, 
+  ReceptionBatch, 
+  CacaoClone, 
+  ProducerTemplate,
+  FarmTemplate,
+  EcosystemUserAccount 
+} from '../types';
 import { 
   INITIAL_ASSOCIATIONS, 
   INITIAL_PRODUCERS, 
   INITIAL_FARMS, 
   INITIAL_CENTRALES,
-  INITIAL_RECEPTIONS 
+  INITIAL_RECEPTIONS,
+  INITIAL_CLONES
 } from '../data/mockData';
 
 // Initialize Firebase App
@@ -58,8 +69,11 @@ const STORAGE_KEYS = {
   ASSOCIATIONS: 'agronomatrix_central_associations',
   PRODUCERS: 'agronomatrix_central_producers',
   FARMS: 'agronomatrix_central_farms',
+  PRODUCER_TEMPLATES: 'agronomatrix_central_producer_templates',
+  FARM_TEMPLATES: 'agronomatrix_central_farm_templates',
   CENTRALES: 'agronomatrix_central_facilities',
-  RECEPTIONS: 'agronomatrix_central_receptions'
+  RECEPTIONS: 'agronomatrix_central_receptions',
+  CLONES: 'agronomatrix_central_clones'
 };
 
 function readLocalCache<T>(key: string, fallback: T): T {
@@ -163,13 +177,27 @@ export function subscribeToProducers(
         const list: Producer[] = [];
         snapshot.forEach((docSnap) => {
           const data = docSnap.data();
+          let resolvedDocId = data.documentId || 'N/A';
+          if (
+            (resolvedDocId.toLowerCase() === 'cc' || resolvedDocId.toLowerCase() === 'ti' || resolvedDocId === 'N/A') &&
+            data.dynamicValues
+          ) {
+            const numericVal = Object.values(data.dynamicValues).find(
+              (v) => typeof v === 'string' && /^\d{5,12}$/.test(v.trim())
+            );
+            if (numericVal) resolvedDocId = String(numericVal).trim();
+          }
+
           list.push({
             id: docSnap.id,
+            templateId: data.templateId,
+            templateCode: data.templateCode,
+            templateTitle: data.templateTitle,
             associationId: data.associationId,
             associationName: data.associationName,
             associationCode: data.associationCode,
             producerName: data.producerName || 'Productor sin nombre',
-            documentId: data.documentId || 'N/A',
+            documentId: resolvedDocId,
             phone: data.phone,
             veredaOrLocation: data.veredaOrLocation || 'Vereda General',
             latitude: data.latitude,
@@ -179,19 +207,15 @@ export function subscribeToProducers(
             dataAuthorization: data.dataAuthorization ?? true,
             dynamicValues: data.dynamicValues || {},
             createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+            syncStatus: data.syncStatus,
             operatorEmail: data.operatorEmail,
             sourceDevice: data.sourceDevice
           });
         });
 
-        if (list.length === 0) {
-          const fallback = readLocalCache(STORAGE_KEYS.PRODUCERS, INITIAL_PRODUCERS);
-          writeLocalCache(STORAGE_KEYS.PRODUCERS, fallback);
-          onData(fallback);
-        } else {
-          writeLocalCache(STORAGE_KEYS.PRODUCERS, list);
-          onData(list);
-        }
+        writeLocalCache(STORAGE_KEYS.PRODUCERS, list);
+        onData(list);
       },
       (err) => {
         console.warn('Firestore producers subscription warning, using local cache:', err.message);
@@ -231,6 +255,9 @@ export function subscribeToFarms(
           const data = docSnap.data();
           list.push({
             id: docSnap.id,
+            templateId: data.templateId,
+            templateCode: data.templateCode,
+            templateTitle: data.templateTitle,
             producerId: data.producerId,
             producerName: data.producerName,
             producerDocument: data.producerDocument,
@@ -249,24 +276,21 @@ export function subscribeToFarms(
             totalAreaHa: data.totalAreaHa || 0,
             cacaoAreaHa: data.cacaoAreaHa || 0,
             cloneDistributions: data.cloneDistributions || [],
+            dynamicValues: data.dynamicValues || {},
             deforestationStatus: data.deforestationStatus || 'compliant',
             deforestationDetails: data.deforestationDetails || 'Verificado conforme a normativa EUDR.',
             kmlFileName: data.kmlFileName,
             visitDate: data.visitDate,
             recommendations: data.recommendations,
             createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
+            syncStatus: data.syncStatus,
             technicianEmail: data.technicianEmail
           });
         });
 
-        if (list.length === 0) {
-          const fallback = readLocalCache(STORAGE_KEYS.FARMS, INITIAL_FARMS);
-          writeLocalCache(STORAGE_KEYS.FARMS, fallback);
-          onData(fallback);
-        } else {
-          writeLocalCache(STORAGE_KEYS.FARMS, list);
-          onData(list);
-        }
+        writeLocalCache(STORAGE_KEYS.FARMS, list);
+        onData(list);
       },
       (err) => {
         console.warn('Firestore farms subscription warning, using local cache:', err.message);
@@ -398,6 +422,264 @@ export function subscribeToReceptions(
   } catch (e) {
     if (onStatusChange) onStatusChange(false);
     const fallback = readLocalCache(STORAGE_KEYS.RECEPTIONS, INITIAL_RECEPTIONS);
+    onData(fallback);
+  }
+
+  return () => {
+    if (unsubscribe) unsubscribe();
+  };
+}
+
+/**
+ * Saves or updates a Producer in Firestore and local cache
+ */
+export async function saveProducerToFirestore(producer: Producer): Promise<void> {
+  try {
+    const docRef = doc(db, 'cacao_producers', producer.id);
+    await setDoc(docRef, sanitizeForFirestore(producer), { merge: true });
+  } catch (e) {
+    console.warn('Could not write producer to Firestore, storing in local cache:', e);
+  }
+
+  try {
+    const current = readLocalCache<Producer[]>(STORAGE_KEYS.PRODUCERS, INITIAL_PRODUCERS);
+    const existingIndex = current.findIndex((p) => p.id === producer.id);
+    const updated = existingIndex >= 0
+      ? current.map((p) => (p.id === producer.id ? producer : p))
+      : [producer, ...current];
+    writeLocalCache(STORAGE_KEYS.PRODUCERS, updated);
+  } catch (e) {
+    console.error('Error updating local producer cache:', e);
+  }
+}
+
+/**
+ * Deletes a Producer from Firestore and local cache
+ */
+export async function deleteProducerFromFirestore(producerId: string): Promise<void> {
+  try {
+    const docRef = doc(db, 'cacao_producers', producerId);
+    await deleteDoc(docRef);
+  } catch (e) {
+    console.warn('Could not delete producer from Firestore, updating local cache:', e);
+  }
+
+  try {
+    const current = readLocalCache<Producer[]>(STORAGE_KEYS.PRODUCERS, INITIAL_PRODUCERS);
+    const updated = current.filter((p) => p.id !== producerId);
+    localStorage.setItem(STORAGE_KEYS.PRODUCERS, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Error deleting producer from local cache:', e);
+  }
+}
+
+/**
+ * Saves or updates a Farm in Firestore and local cache
+ */
+export async function saveFarmToFirestore(farm: Farm): Promise<void> {
+  try {
+    const docRef = doc(db, 'cacao_farms', farm.id);
+    await setDoc(docRef, sanitizeForFirestore(farm), { merge: true });
+  } catch (e) {
+    console.warn('Could not write farm to Firestore, storing in local cache:', e);
+  }
+
+  try {
+    const current = readLocalCache<Farm[]>(STORAGE_KEYS.FARMS, INITIAL_FARMS);
+    const existingIndex = current.findIndex((f) => f.id === farm.id);
+    const updated = existingIndex >= 0
+      ? current.map((f) => (f.id === farm.id ? farm : f))
+      : [farm, ...current];
+    writeLocalCache(STORAGE_KEYS.FARMS, updated);
+  } catch (e) {
+    console.error('Error updating local farm cache:', e);
+  }
+}
+
+/**
+ * Deletes a Farm from Firestore and local cache
+ */
+export async function deleteFarmFromFirestore(farmId: string): Promise<void> {
+  try {
+    const docRef = doc(db, 'cacao_farms', farmId);
+    await deleteDoc(docRef);
+  } catch (e) {
+    console.warn('Could not delete farm from Firestore, updating local cache:', e);
+  }
+
+  try {
+    const current = readLocalCache<Farm[]>(STORAGE_KEYS.FARMS, INITIAL_FARMS);
+    const updated = current.filter((f) => f.id !== farmId);
+    localStorage.setItem(STORAGE_KEYS.FARMS, JSON.stringify(updated));
+  } catch (e) {
+    console.error('Error deleting farm from local cache:', e);
+  }
+}
+
+/**
+ * Real-time subscription to Producer Templates (`cacao_templates` category='productores')
+ */
+export function subscribeToProducerTemplates(
+  onData: (templates: ProducerTemplate[]) => void
+) {
+  const colRef = collection(db, 'cacao_templates');
+  let unsubscribe: (() => void) | null = null;
+
+  try {
+    unsubscribe = onSnapshot(
+      colRef,
+      (snapshot) => {
+        const list: ProducerTemplate[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.category === 'productores' || data.category === 'productor') {
+            list.push({
+              id: docSnap.id,
+              code: data.code || `PROD-${docSnap.id.slice(0, 4)}`,
+              title: data.title || data.name || 'Plantilla de Productor',
+              description: data.description || '',
+              associationId: data.associationId,
+              associationName: data.associationName,
+              associationCode: data.associationCode,
+              requireDataAuthorization: data.requireDataAuthorization ?? true,
+              producerSections: data.producerSections || [],
+              producerFields: data.producerFields || [],
+              fields: data.fields || [],
+              createdAt: data.createdAt,
+              updatedAt: data.updatedAt
+            });
+          }
+        });
+
+        writeLocalCache(STORAGE_KEYS.PRODUCER_TEMPLATES, list);
+        onData(list);
+      },
+      () => {
+        const fallback = readLocalCache<ProducerTemplate[]>(STORAGE_KEYS.PRODUCER_TEMPLATES, []);
+        onData(fallback);
+      }
+    );
+  } catch (e) {
+    const fallback = readLocalCache<ProducerTemplate[]>(STORAGE_KEYS.PRODUCER_TEMPLATES, []);
+    onData(fallback);
+  }
+
+  return () => {
+    if (unsubscribe) unsubscribe();
+  };
+}
+
+/**
+ * Real-time subscription to Farm Templates (`cacao_templates` category='fincas')
+ */
+export function subscribeToFarmTemplates(
+  onData: (templates: FarmTemplate[]) => void
+) {
+  const colRef = collection(db, 'cacao_templates');
+  let unsubscribe: (() => void) | null = null;
+
+  try {
+    unsubscribe = onSnapshot(
+      colRef,
+      (snapshot) => {
+        const list: FarmTemplate[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.category === 'fincas' || data.category === 'finca') {
+            list.push({
+              id: docSnap.id,
+              code: data.code || `FINCA-${docSnap.id.slice(0, 4)}`,
+              title: data.title || data.name || 'Plantilla de Finca',
+              description: data.description || '',
+              associationId: data.associationId,
+              associationName: data.associationName,
+              associationCode: data.associationCode,
+              requireKmlPolygon: data.requireKmlPolygon ?? false,
+              requireGpsCoordinates: data.requireGpsCoordinates ?? false,
+              clonesTemplateId: data.clonesTemplateId,
+              clonesTemplateCode: data.clonesTemplateCode,
+              clonesTemplateTitle: data.clonesTemplateTitle,
+              cloneDistributions: data.cloneDistributions || [],
+              clones: data.clones || [],
+              farmSections: data.farmSections || [],
+              farmFields: data.farmFields || [],
+              fields: data.fields || [],
+              createdAt: data.createdAt,
+              updatedAt: data.updatedAt
+            });
+          }
+        });
+
+        writeLocalCache(STORAGE_KEYS.FARM_TEMPLATES, list);
+        onData(list);
+      },
+      () => {
+        const fallback = readLocalCache<FarmTemplate[]>(STORAGE_KEYS.FARM_TEMPLATES, []);
+        onData(fallback);
+      }
+    );
+  } catch (e) {
+    const fallback = readLocalCache<FarmTemplate[]>(STORAGE_KEYS.FARM_TEMPLATES, []);
+    onData(fallback);
+  }
+
+  return () => {
+    if (unsubscribe) unsubscribe();
+  };
+}
+
+/**
+ * Real-time subscription to Cacao Clones (`cacao_templates` category='clones')
+ */
+export function subscribeToClones(
+  onData: (clones: CacaoClone[]) => void
+) {
+  const colRef = collection(db, 'cacao_templates');
+  let unsubscribe: (() => void) | null = null;
+
+  try {
+    unsubscribe = onSnapshot(
+      colRef,
+      (snapshot) => {
+        const list: CacaoClone[] = [];
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data();
+          if (data.category === 'clones' || data.category === 'clon') {
+            list.push({
+              id: docSnap.id,
+              code: data.code || data.title || docSnap.id,
+              name: data.title || data.name || 'Clon de Cacao',
+              origin: data.origin || 'Colombia / Selección Genética',
+              category: data.cloneCategory || 'Fino de Aroma',
+              sensoryProfile: data.sensoryProfile || data.description || 'Notas frutales, florales y cacao fino.',
+              grainIndexGrams: data.grainIndexGrams || 1.6,
+              podIndex: data.podIndex || 17,
+              yieldKgHaYear: data.yieldKgHaYear || 1600,
+              altitudeRange: data.altitudeRange || '200 - 1.200 m.s.n.m.',
+              moniliaResistance: data.moniliaResistance || 'Tolerante',
+              escobaBrujaResistance: data.escobaBrujaResistance || 'Alta',
+              fermentationDays: data.fermentationDays || 6,
+              description: data.description || ''
+            });
+          }
+        });
+
+        if (list.length === 0) {
+          const fallback = readLocalCache(STORAGE_KEYS.CLONES, INITIAL_CLONES);
+          writeLocalCache(STORAGE_KEYS.CLONES, fallback);
+          onData(fallback);
+        } else {
+          writeLocalCache(STORAGE_KEYS.CLONES, list);
+          onData(list);
+        }
+      },
+      () => {
+        const fallback = readLocalCache(STORAGE_KEYS.CLONES, INITIAL_CLONES);
+        onData(fallback);
+      }
+    );
+  } catch (e) {
+    const fallback = readLocalCache(STORAGE_KEYS.CLONES, INITIAL_CLONES);
     onData(fallback);
   }
 

@@ -13,8 +13,74 @@ export interface Association {
   updatedAt?: string;
 }
 
+export interface TemplateField {
+  id: string;
+  name?: string;
+  label?: string;
+  type: string;
+  required?: boolean;
+  options?: string[];
+  dependentOptions?: Record<string, string[]>;
+  parentFieldId?: string;
+  parentFieldName?: string;
+  unit?: string;
+  placeholder?: string;
+  defaultValue?: string;
+  section?: string;
+  fileAccepted?: string;
+  attachmentFormat?: string;
+}
+
+export interface TemplateSection {
+  id: string;
+  name: string;
+  description?: string;
+  fields: TemplateField[];
+}
+
+export interface ProducerTemplate {
+  id: string;
+  code: string;
+  title: string;
+  description?: string;
+  associationId?: string;
+  associationName?: string;
+  associationCode?: string;
+  requireDataAuthorization?: boolean;
+  producerSections?: TemplateSection[];
+  producerFields?: TemplateField[];
+  fields?: TemplateField[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface FarmTemplate {
+  id: string;
+  code: string;
+  title: string;
+  description?: string;
+  associationId?: string;
+  associationName?: string;
+  associationCode?: string;
+  requireKmlPolygon?: boolean;
+  requireGpsCoordinates?: boolean;
+  clonesTemplateId?: string;
+  clonesTemplateCode?: string;
+  clonesTemplateTitle?: string;
+  cloneDistributions?: CloneDistributionItem[];
+  clones?: Array<{ id: string; name: string; code?: string }>;
+  farmSections?: TemplateSection[];
+  farmFields?: TemplateField[];
+  fields?: TemplateField[];
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface Producer {
   id: string;
+  templateId?: string;
+  templateCode?: string;
+  templateTitle?: string;
   associationId?: string;
   associationName?: string;
   associationCode?: string;
@@ -29,6 +95,8 @@ export interface Producer {
   dataAuthorization?: boolean;
   dynamicValues?: Record<string, any>;
   createdAt?: string;
+  updatedAt?: string;
+  syncStatus?: string;
   operatorEmail?: string;
   sourceDevice?: string;
   // Computed / aggregated
@@ -45,6 +113,9 @@ export interface CloneDistributionItem {
 
 export interface Farm {
   id: string;
+  templateId?: string;
+  templateCode?: string;
+  templateTitle?: string;
   producerId?: string;
   producerName?: string;
   producerDocument?: string;
@@ -63,12 +134,15 @@ export interface Farm {
   totalAreaHa?: number;
   cacaoAreaHa?: number;
   cloneDistributions?: CloneDistributionItem[];
+  dynamicValues?: Record<string, any>;
   deforestationStatus?: 'compliant' | 'warning' | 'alert' | 'unverified';
   deforestationDetails?: string;
   kmlFileName?: string;
   visitDate?: string;
   recommendations?: string;
   createdAt?: string;
+  updatedAt?: string;
+  syncStatus?: string;
   technicianEmail?: string;
 }
 
@@ -120,6 +194,23 @@ export interface ReceptionBatch {
   notes?: string;
 }
 
-export type MainTab = 'productores' | 'fincas' | 'centrales' | 'recepciones';
+export interface CacaoClone {
+  id: string;
+  code: string;
+  name: string;
+  origin: string;
+  category: 'Fino de Aroma' | 'Alta Productividad' | 'Trinitario' | 'Criollo Ancestral';
+  sensoryProfile: string;
+  grainIndexGrams: number;
+  podIndex: number;
+  yieldKgHaYear: number;
+  altitudeRange: string;
+  moniliaResistance: 'Alta' | 'Media' | 'Baja' | 'Tolerante';
+  escobaBrujaResistance: 'Alta' | 'Media' | 'Baja' | 'Tolerante';
+  fermentationDays: number;
+  description: string;
+}
+
+export type MainTab = 'productores' | 'fincas' | 'clones' | 'centrales' | 'recepciones';
 
 export * from './auth';

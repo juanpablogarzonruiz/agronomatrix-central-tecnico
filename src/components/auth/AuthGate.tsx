@@ -121,262 +121,262 @@ export const AuthGate: React.FC = () => {
 
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-center items-center p-4 relative overflow-hidden selection:bg-emerald-500/30 selection:text-emerald-300">
+    <div className="min-h-screen bg-[#f4f7f6] text-slate-900 flex flex-col justify-center items-center p-4 sm:p-8 relative overflow-hidden selection:bg-emerald-500/20 selection:text-emerald-900">
       
-      {/* Background ambient lighting */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[500px] bg-gradient-to-tr from-emerald-600/15 via-amber-600/10 to-transparent rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-80 h-80 bg-emerald-950/40 rounded-full blur-3xl pointer-events-none" />
+      {/* Soft light ambient highlights */}
+      <div className="absolute top-12 left-1/4 w-96 h-96 bg-emerald-200/40 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-12 right-1/4 w-96 h-96 bg-teal-100/50 rounded-full blur-3xl pointer-events-none" />
 
-      {/* Main Auth Container */}
-      <div className="relative z-10 w-full max-w-xl">
+      {/* Main Split 3D Card Container */}
+      <div className="relative z-10 w-full max-w-[940px] rounded-[28px] card-3d-outer overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[540px]">
         
-        {/* Brand Header */}
-        <div className="text-center mb-6 space-y-2">
-          <div className="inline-flex items-center justify-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-amber-600 flex items-center justify-center shadow-xl shadow-emerald-500/30 ring-2 ring-emerald-400/40">
-              <Factory className="w-6 h-6 text-white" />
-            </div>
-            <div className="text-left">
-              <div className="flex items-center gap-2">
-                <h1 className="font-serif-cacao font-black text-2xl tracking-wide text-white">
-                  AGRONOMATRIX
-                </h1>
-                <span className="px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  Firebase + 2FA
-                </span>
-              </div>
-              <p className="text-xs text-slate-400">Portal Técnico de Central de Beneficio</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Security Access Card */}
-        <div className="glass-panel bg-slate-900/90 border border-emerald-500/30 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/80 backdrop-blur-xl relative">
+        {/* Left Brand Panel */}
+        <div className="md:col-span-5 bg-gradient-to-br from-[#077a58] via-[#055a40] to-[#033828] text-white p-8 sm:p-10 flex flex-col justify-between relative overflow-hidden border-b-2 md:border-b-0 md:border-r-2 border-slate-800/30 shadow-[inset_-6px_0_16px_rgba(0,0,0,0.18)]">
+          {/* Subtle top-left 3D specular highlight */}
+          <div className="absolute -top-20 -left-20 w-72 h-72 bg-emerald-300/15 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute inset-x-0 top-0 h-[1px] bg-white/30 pointer-events-none" />
           
-          {/* Header Status Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-5 border-b border-white/10">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
-              <div>
-                <h2 className="text-sm font-bold text-white uppercase tracking-wider">
-                  Acceso Autorizado Obligatorio
-                </h2>
-                <p className="text-[11px] text-slate-400">
-                  {step === 'credentials' 
-                    ? 'Paso 1: Validación de cuenta en Firebase Authentication' 
-                    : 'Paso 2: Validación de código con Google Authenticator'}
-                </p>
-              </div>
+          <div className="relative z-10">
+            <p className="text-[11px] font-bold tracking-[0.16em] uppercase text-emerald-100/95 leading-relaxed drop-shadow-xs">
+              INGENIERÍA DE PRECISIÓN DEL SABOR
+              <br />
+              DEL CACAO
+            </p>
+
+            <h1 className="mt-4 font-serif-cacao font-bold text-3xl sm:text-[38px] text-white tracking-tight leading-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]">
+              Cacaoanalytica
+            </h1>
+
+            <div className="mt-3 space-y-0.5 text-xs font-extrabold tracking-[0.15em] uppercase">
+              <p className="text-[#6ee7b7] drop-shadow-xs">ECOSISTEMA</p>
+              <p className="text-white">CENTRAL DE BENEFICIO</p>
             </div>
 
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-[11px] font-semibold text-emerald-300">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-              <span>Rol: Central de Beneficio</span>
-            </div>
+            <p className="mt-6 text-[13px] sm:text-sm text-emerald-50/90 leading-relaxed font-normal">
+              Ecosistema con Inteligencia Artificial para trazabilidad total y predecir la calidad desde el campo hasta la exportación.
+            </p>
           </div>
 
-          {/* ============================================================== */}
-          {/* PASO 1: CORREO Y CONTRASEÑA EN FIREBASE AUTHENTICATION          */}
-          {/* ============================================================== */}
-          {step === 'credentials' && (
-            <form onSubmit={handleCredentialsSubmit} className="mt-6 space-y-5">
-              
-              {/* Email Input */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-slate-400" />
-                  <span>Correo Electrónico o Usuario Registrado:</span>
-                </label>
-                <input
-                  type="text"
-                  value={emailInput}
-                  onChange={(e) => setEmailInput(e.target.value)}
-                  placeholder="ejemplo@agronomatrix.com o usuario"
-                  className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition font-mono-num"
-                  required
-                />
-              </div>
-
-              {/* Password Input */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <Lock className="w-3.5 h-3.5 text-slate-400" />
-                    Contraseña de la Cuenta:
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-mono-num">Almacenada en Firebase</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    placeholder="Ingresa tu contraseña"
-                    className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/40 transition font-mono-num pr-10"
-                    required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Error Alert */}
-              {loginError && (
-                <div className="bg-rose-950/60 border border-rose-500/40 rounded-xl p-3 flex items-center gap-2.5 text-xs text-rose-200 animate-shake">
-                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                  <span>{loginError}</span>
-                </div>
-              )}
-
-              {/* Submit Button Step 1 */}
-              <button
-                type="submit"
-                disabled={isVerifyingCredentials}
-                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-600 to-amber-600 hover:from-emerald-400 hover:via-emerald-500 hover:to-amber-500 text-slate-950 font-black text-sm tracking-wide shadow-xl shadow-emerald-500/25 flex items-center justify-center gap-2 transition cursor-pointer active:scale-[0.98] disabled:opacity-50"
-              >
-                {isVerifyingCredentials ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                    <span>Validando...</span>
-                  </>
-                ) : (
-                  <>
-                    <BadgeCheck className="w-5 h-5 text-slate-950" />
-                    <span>Aceptar</span>
-                    <ArrowRight className="w-4 h-4 text-slate-950 ml-1" />
-                  </>
-                )}
-              </button>
-            </form>
-          )}
-
-          {/* ============================================================== */}
-          {/* PASO 2: CÓDIGO DINÁMICO DE GOOGLE AUTHENTICATOR (TOTP)        */}
-          {/* ============================================================== */}
-          {step === 'totp' && pendingUser && (
-            <form onSubmit={handleTotpSubmit} className="mt-6 space-y-5 animate-fadeIn">
-              
-              {/* Authenticated Account Pill */}
-              <div className="bg-slate-950/80 border border-emerald-500/30 rounded-2xl p-4 flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-amber-600 flex items-center justify-center text-white font-bold text-sm ring-2 ring-emerald-400/30">
-                    {pendingUser.name.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-bold text-xs text-white">{pendingUser.name}</span>
-                      <span className="px-1.5 py-0.2 rounded-full text-[9px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                        Firebase OK ✓
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-400">{pendingUser.email}</p>
-                    <p className="text-[10px] text-amber-400 font-semibold">{pendingUser.role}</p>
-                  </div>
-                </div>
-
-                {/* 30s Countdown timer */}
-                <div 
-                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-900 border border-slate-700 text-[11px] font-mono-num text-amber-300 shadow-inner"
-                  title="Tiempo de validez restante del código actual"
-                >
-                  <Clock className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
-                  <span>{remainingSeconds}s</span>
-                </div>
-              </div>
-
-              {/* TOTP 6-Digit Inputs */}
-              <div className="space-y-3">
-                <label className="text-xs font-semibold text-slate-300 flex items-center justify-between">
-                  <span className="flex items-center gap-1.5">
-                    <Smartphone className="w-4 h-4 text-emerald-400" />
-                    Código Dinámico de Google Authenticator:
-                  </span>
-                  <span className="text-[10px] text-emerald-400 font-mono-num font-bold">6 dígitos</span>
-                </label>
-
-                <div className="flex items-center justify-center gap-2 sm:gap-3 py-1">
-                  {totpDigits.map((digit, index) => (
-                    <input
-                      key={index}
-                      ref={(el) => {
-                        inputRefs.current[index] = el;
-                      }}
-                      type="text"
-                      inputMode="numeric"
-                      pattern="[0-9]*"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleDigitChange(index, e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(index, e)}
-                      className={`w-11 h-14 sm:w-12 sm:h-16 text-center text-xl sm:text-2xl font-mono-num font-black rounded-2xl border transition focus:outline-none ${
-                        digit 
-                          ? 'bg-emerald-950/50 border-emerald-400 text-emerald-300 shadow-lg shadow-emerald-500/20' 
-                          : 'bg-slate-900/90 border-slate-700 text-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/30'
-                      }`}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Información de acceso con 2FA */}
-              <div className="pt-3 border-t border-white/10 text-center">
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  Ingresa el código dinámico de 6 dígitos generado en la aplicación <strong className="text-emerald-300 font-semibold">Google Authenticator</strong> vinculada a tu cuenta.
-                </p>
-              </div>
-
-              {/* Error Alert */}
-              {loginError && (
-                <div className="bg-rose-950/60 border border-rose-500/40 rounded-xl p-3 flex items-center gap-2.5 text-xs text-rose-200 animate-shake">
-                  <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                  <span>{loginError}</span>
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="space-y-2">
-                <button
-                  type="submit"
-                  disabled={isVerifyingTotp}
-                  className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-emerald-500 via-emerald-600 to-amber-600 hover:from-emerald-400 hover:via-emerald-500 hover:to-amber-500 text-slate-950 font-black text-sm tracking-wide shadow-xl shadow-emerald-500/25 flex items-center justify-center gap-2 transition cursor-pointer active:scale-[0.98] disabled:opacity-50"
-                >
-                  {isVerifyingTotp ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
-                      <span>Verificando con Google Authenticator...</span>
-                    </>
-                  ) : (
-                    <>
-                      <BadgeCheck className="w-5 h-5 text-slate-950" />
-                      <span>Verificar Código y Entrar a la Central</span>
-                      <ArrowRight className="w-4 h-4 text-slate-950 ml-1" />
-                    </>
-                  )}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={cancelTwoFactor}
-                  className="w-full py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 text-xs font-semibold flex items-center justify-center gap-1.5 transition cursor-pointer"
-                >
-                  <ArrowLeft className="w-3.5 h-3.5" />
-                  <span>Volver / Cambiar Cuenta de Correo</span>
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Footer security tag */}
-          <div className="mt-6 pt-4 border-t border-white/5 text-center text-[11px] text-slate-500 flex items-center justify-center gap-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-            <span>Ecosistema Seguro Agronomatrix · Conexión Cifrada & Trazabilidad Central</span>
+          <div className="relative z-10 pt-5 mt-8 border-t border-white/20 flex items-center gap-2.5 text-xs font-semibold text-emerald-50">
+            <ShieldCheck className="w-4 h-4 text-[#6ee7b7] shrink-0" />
+            <span>Google Authenticator</span>
           </div>
         </div>
+
+        {/* Right Form Panel (Light 3D Surface) */}
+        <div className="md:col-span-7 bg-gradient-to-b from-white to-[#f8fafc] flex items-center justify-center p-6 sm:p-10">
+          <div className="w-full max-w-[430px] rounded-2xl p-6 sm:p-8 card-3d-inner">
+            
+            {/* ============================================================== */}
+            {/* PASO 1: CORREO Y CONTRASEÑA EN FIREBASE AUTHENTICATION          */}
+            {/* ============================================================== */}
+            {step === 'credentials' && (
+              <div>
+                <p className="text-[11px] font-extrabold tracking-[0.14em] uppercase text-[#059669]">
+                  ACCESO SEGURO
+                </p>
+                <h2 className="mt-1 font-serif-cacao text-2xl sm:text-[28px] font-bold text-slate-900">
+                  Iniciar Sesión
+                </h2>
+                <p className="mt-1 text-xs sm:text-[13px] text-slate-500 leading-relaxed">
+                  Ingresa tus credenciales corporativas para acceder al sistema.
+                </p>
+
+                <form onSubmit={handleCredentialsSubmit} className="mt-6 space-y-4">
+                  {/* Email Input */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Correo Electrónico
+                    </label>
+                    <input
+                      type="text"
+                      value={emailInput}
+                      onChange={(e) => setEmailInput(e.target.value)}
+                      placeholder="correo@empresa.com"
+                      className="w-full rounded-xl px-4 py-2.5 text-sm text-slate-800 placeholder-slate-400 input-3d-emerald"
+                      required
+                    />
+                  </div>
+
+                  {/* Password Input */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1.5">
+                      Contraseña
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={passwordInput}
+                        onChange={(e) => setPasswordInput(e.target.value)}
+                        placeholder="••••••••••••"
+                        className="w-full rounded-xl px-4 py-2.5 pr-10 text-sm text-slate-800 placeholder-slate-400 input-3d"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800 transition cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Error Alert */}
+                  {loginError && (
+                    <div className="bg-rose-50 border-2 border-rose-300 shadow-[2px_2px_0px_#e11d48] rounded-xl p-3 flex items-center gap-2.5 text-xs text-rose-800 font-semibold">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>{loginError}</span>
+                    </div>
+                  )}
+
+                  {/* Submit Button Step 1 */}
+                  <div className="pt-2">
+                    <button
+                      type="submit"
+                      disabled={isVerifyingCredentials}
+                      className="w-full py-3 px-5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 btn-3d-emerald"
+                    >
+                      {isVerifyingCredentials ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Validando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Continuar</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {/* ============================================================== */}
+            {/* PASO 2: CÓDIGO DINÁMICO DE GOOGLE AUTHENTICATOR (TOTP)        */}
+            {/* ============================================================== */}
+            {step === 'totp' && pendingUser && (
+              <div className="animate-fadeIn">
+                <p className="text-[11px] font-extrabold tracking-[0.14em] uppercase text-[#059669]">
+                  VERIFICACIÓN 2FA
+                </p>
+                <h2 className="mt-1 font-serif-cacao text-2xl sm:text-[26px] font-bold text-slate-900">
+                  Google Authenticator
+                </h2>
+                <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                  Ingresa el código dinámico de 6 dígitos generado en tu aplicación.
+                </p>
+
+                <form onSubmit={handleTotpSubmit} className="mt-5 space-y-5">
+                  {/* Authenticated Account Pill */}
+                  <div className="bg-slate-50 border-2 border-slate-300 shadow-[2px_2px_0px_#64748b] rounded-xl p-3.5 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-[#047857] border border-slate-900 shadow-[2px_2px_0px_#0f172a] flex items-center justify-center text-white font-bold text-xs shrink-0">
+                        {pendingUser.name.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-xs text-slate-800 truncate">{pendingUser.name}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 truncate">{pendingUser.email}</p>
+                      </div>
+                    </div>
+
+                    {/* 30s Countdown timer */}
+                    <div 
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-50 border border-emerald-400 shadow-[1.5px_1.5px_0px_#059669] text-[11px] font-mono-num font-bold text-emerald-800 shrink-0"
+                      title="Tiempo de validez restante del código actual"
+                    >
+                      <Clock className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
+                      <span>{remainingSeconds}s</span>
+                    </div>
+                  </div>
+
+                  {/* TOTP 6-Digit Inputs */}
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-slate-700 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Smartphone className="w-4 h-4 text-[#059669]" />
+                        Código de 6 dígitos
+                      </span>
+                    </label>
+
+                    <div className="flex items-center justify-between gap-1.5 sm:gap-2 py-1">
+                      {totpDigits.map((digit, index) => (
+                        <input
+                          key={index}
+                          ref={(el) => {
+                            inputRefs.current[index] = el;
+                          }}
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          maxLength={1}
+                          value={digit}
+                          onChange={(e) => handleDigitChange(index, e.target.value)}
+                          onKeyDown={(e) => handleKeyDown(index, e)}
+                          className={`w-11 h-12 sm:w-12 sm:h-14 text-center text-lg sm:text-xl font-mono-num font-bold rounded-xl transition focus:outline-none ${
+                            digit 
+                              ? 'bg-emerald-50 border-2 border-[#059669] shadow-[2px_3px_0px_#047857] text-emerald-950' 
+                              : 'input-3d text-slate-900'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Error Alert */}
+                  {loginError && (
+                    <div className="bg-rose-50 border-2 border-rose-300 shadow-[2px_2px_0px_#e11d48] rounded-xl p-3 flex items-center gap-2.5 text-xs text-rose-800 font-semibold">
+                      <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                      <span>{loginError}</span>
+                    </div>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="space-y-2.5 pt-1">
+                    <button
+                      type="submit"
+                      disabled={isVerifyingTotp}
+                      className="w-full py-3 px-5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 btn-3d-emerald"
+                    >
+                      {isVerifyingTotp ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>Verificando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>Verificar y Continuar</span>
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={cancelTwoFactor}
+                      className="w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 cursor-pointer btn-3d-light"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5" />
+                      <span>Volver a credenciales</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+          </div>
+        </div>
+      </div>
+
+      {/* Bottom Footer Text */}
+      <div className="mt-6 text-center">
+        <p className="text-xs sm:text-sm font-bold text-slate-600 tracking-wide">
+          Agronomatrix - CACAOANALYTICA
+        </p>
       </div>
     </div>
   );

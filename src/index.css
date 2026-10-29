@@ -10,12 +10,12 @@
   }
   body {
     font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-    color: #F8FAFC;
-    background-color: #030712;
+    color: #0f172a;
+    background-color: #f4f7f6;
     background-image: 
-      radial-gradient(at 0% 0%, rgba(5, 150, 105, 0.12) 0px, transparent 50%),
-      radial-gradient(at 100% 0%, rgba(217, 119, 6, 0.08) 0px, transparent 50%),
-      radial-gradient(at 50% 100%, rgba(16, 185, 129, 0.08) 0px, transparent 50%);
+      radial-gradient(at 0% 0%, rgba(16, 185, 129, 0.08) 0px, transparent 50%),
+      radial-gradient(at 100% 0%, rgba(245, 158, 11, 0.06) 0px, transparent 50%),
+      radial-gradient(at 50% 100%, rgba(5, 150, 105, 0.07) 0px, transparent 50%);
     background-attachment: fixed;
   }
 }
@@ -29,40 +29,192 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* Glassmorphism utility */
+/* 3D Light Tactile Card System */
+.card-3d-outer {
+  background: #ffffff;
+  border: 2px solid #334155;
+  box-shadow: 
+    7px 7px 0px #1e293b,
+    0 25px 50px -12px rgba(15, 23, 42, 0.18);
+}
+
+.card-3d-inner {
+  background: #ffffff;
+  border: 2px solid #94a3b8;
+  box-shadow: 
+    5px 5px 0px #475569,
+    0 12px 24px -6px rgba(15, 23, 42, 0.08);
+}
+
+.input-3d {
+  background: #ffffff;
+  border: 2px solid #94a3b8;
+  box-shadow: 0 3px 0px #64748b, inset 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: all 0.15s ease;
+}
+
+.input-3d:focus {
+  border-color: #10b981;
+  box-shadow: 0 3px 0px #059669, 0 0 0 3px rgba(16, 185, 129, 0.15);
+  outline: none;
+}
+
+.input-3d-emerald {
+  background: #ffffff;
+  border: 2px solid #10b981;
+  box-shadow: 0 3px 0px #059669, inset 0 1px 2px rgba(16, 185, 129, 0.04);
+  transition: all 0.15s ease;
+}
+
+.input-3d-emerald:focus {
+  border-color: #059669;
+  box-shadow: 0 3px 0px #047857, 0 0 0 3px rgba(16, 185, 129, 0.2);
+  outline: none;
+}
+
+.btn-3d-emerald {
+  background: linear-gradient(180deg, #059669 0%, #047857 100%);
+  color: #ffffff;
+  border: 2px solid #0f172a;
+  box-shadow: 3px 4px 0px #0f172a, inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition: all 0.12s ease;
+}
+
+.btn-3d-emerald:hover:not(:disabled) {
+  background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 5px 0px #0f172a, inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.btn-3d-emerald:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px #0f172a;
+}
+
+.btn-3d-light {
+  background: #ffffff;
+  color: #1e293b;
+  border: 1.5px solid #475569;
+  box-shadow: 2.5px 3px 0px #475569;
+  transition: all 0.12s ease;
+}
+
+.btn-3d-light:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #059669;
+  color: #047857;
+  transform: translate(-1px, -1px);
+  box-shadow: 3.5px 4px 0px #059669;
+}
+
+.btn-3d-light:active:not(:disabled) {
+  transform: translate(1.5px, 1.5px);
+  box-shadow: 1px 1px 0px #475569;
+}
+
+/* Light 3D Panel utilities replacing old dark glassmorphism */
 .glass-panel {
-  background: rgba(17, 24, 39, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: 
+    4px 4px 0px #475569,
+    0 10px 25px -5px rgba(15, 23, 42, 0.07);
 }
 
 .glass-panel-subtle {
-  background: rgba(15, 23, 42, 0.6);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: 2.5px 2.5px 0px #64748b;
 }
 
 .glass-panel-active {
-  background: rgba(6, 78, 59, 0.45);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(16, 185, 129, 0.35);
-  box-shadow: 0 0 25px rgba(16, 185, 129, 0.15);
+  background: #ecfdf5;
+  border: 2px solid #059669;
+  box-shadow: 4px 4px 0px #065f46;
 }
 
-/* Sleek scrollbar */
+/* Sleek light scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: rgba(3, 7, 18, 0.5);
+  background: #e2e8f0;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(16, 185, 129, 0.3);
+  background: #10b981;
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 185, 129, 0.6);
+  background: #059669;
+}
+
+/* Light 3D Theme Remap for Dashboard Views & Modals */
+main h2,
+.glass-panel h2,
+.glass-panel h3,
+.glass-panel h4,
+.glass-panel td.text-white,
+.glass-panel span.text-white,
+.glass-panel p.text-white {
+  color: #0f172a !important;
+}
+
+.glass-panel .text-slate-300,
+.glass-panel .text-slate-200 {
+  color: #334155 !important;
+}
+
+.glass-panel .text-slate-400 {
+  color: #64748b !important;
+}
+
+.glass-panel .text-emerald-300,
+.glass-panel .text-emerald-400 {
+  color: #047857 !important;
+}
+
+.glass-panel .text-amber-300,
+.glass-panel .text-amber-400 {
+  color: #b45309 !important;
+}
+
+.glass-panel .text-teal-300,
+.glass-panel .text-teal-400 {
+  color: #0f766e !important;
+}
+
+.glass-panel .bg-slate-900,
+.glass-panel .bg-slate-900\/90,
+.glass-panel .bg-slate-900\/80,
+.glass-panel .bg-slate-900\/70,
+.glass-panel .bg-slate-900\/60,
+.glass-panel .bg-slate-900\/50,
+.glass-panel .bg-slate-900\/40,
+.glass-panel .bg-slate-950,
+.glass-panel .bg-slate-950\/80,
+.glass-panel .bg-slate-950\/70,
+.glass-panel .bg-slate-950\/60,
+.glass-panel .bg-slate-800 {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.glass-panel input,
+.glass-panel select,
+.glass-panel textarea {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border: 2px solid #94a3b8 !important;
+  box-shadow: 0 2px 0px #64748b !important;
+}
+
+.glass-panel thead {
+  background-color: #f1f5f9 !important;
+  border-bottom: 2px solid #cbd5e1 !important;
+}
+
+.glass-panel tbody tr:hover {
+  background-color: #ecfdf5 !important;
 }

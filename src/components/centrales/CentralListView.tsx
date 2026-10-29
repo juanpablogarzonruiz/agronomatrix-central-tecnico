@@ -75,19 +75,19 @@ export const CentralListView: React.FC<CentralListViewProps> = ({
       {/* Header & Controls Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/5">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-xl font-serif-cacao font-bold text-white tracking-wide">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 className="text-xl font-serif-cacao font-bold text-slate-900 tracking-wide">
               Centrales de Beneficio Cacaoteras
             </h2>
-            <span className="px-2 py-0.5 rounded-full text-xs font-mono-num font-bold bg-teal-500/20 text-teal-300 border border-teal-500/30">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-mono-num font-bold bg-teal-100 text-teal-800 border border-teal-400">
               {centrales.length}
             </span>
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-slate-200 text-slate-700 border border-slate-400">
+              Red General · Independiente de Asociación
+            </span>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            {selectedAssociationName 
-              ? `Plantas e infraestructura de beneficio de: ${selectedAssociationName}`
-              : 'Centros comunitarios de fermentación, secado solar y transformación postcosecha'
-            }
+          <p className="text-xs text-slate-600 mt-0.5">
+            Centros comunitarios de fermentación, secado solar y transformación postcosecha de todo el ecosistema.
           </p>
         </div>
 

@@ -39,30 +39,30 @@ export const UserMenu: React.FC = () => {
       {/* Trigger Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-2xl bg-slate-900/90 hover:bg-slate-800/90 border border-emerald-500/30 text-white transition cursor-pointer shadow-md shadow-emerald-950/20 group"
+        className="flex items-center gap-2 p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-white hover:bg-emerald-50 border-2 border-slate-700 shadow-[2.5px_3px_0px_#334155] text-slate-900 transition cursor-pointer group"
       >
         {/* Avatar / Role Icon */}
         <div className="relative">
-          <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-emerald-500 to-amber-600 flex items-center justify-center text-white text-xs font-bold ring-2 ring-emerald-400/30">
+          <div className="w-7 h-7 rounded-lg bg-[#047857] border border-slate-900 flex items-center justify-center text-white text-xs font-bold">
             {user.name.split(' ').map(n => n[0]).slice(0, 2).join('')}
           </div>
-          <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-400 rounded-full ring-2 ring-slate-950 animate-pulse" />
+          <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white animate-pulse" />
         </div>
 
         {/* User & Role Label */}
         <div className="hidden md:flex flex-col text-left">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-bold text-white group-hover:text-emerald-300 transition line-clamp-1">
+            <span className="text-xs font-bold text-slate-900 group-hover:text-[#047857] transition line-clamp-1">
               {user.name}
             </span>
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            <ShieldCheck className="w-3.5 h-3.5 text-[#059669] shrink-0" />
           </div>
-          <span className="text-[10px] text-emerald-400 font-semibold tracking-wide">
-            Rol: Central de Beneficio
+          <span className="text-[10px] text-[#059669] font-bold tracking-wide">
+            CENTRAL DE BENEFICIO
           </span>
         </div>
 
-        <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`w-3.5 h-3.5 text-slate-500 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
       {/* Dropdown Menu */}

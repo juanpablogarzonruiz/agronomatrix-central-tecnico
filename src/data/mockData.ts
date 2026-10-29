@@ -1,4 +1,119 @@
-import { Association, Producer, Farm, CentralBeneficio, ReceptionBatch } from '../types';
+import { Association, Producer, Farm, CentralBeneficio, ReceptionBatch, CacaoClone } from '../types';
+
+export const INITIAL_CLONES: CacaoClone[] = [
+  {
+    id: 'clone_1',
+    code: 'ICS-95',
+    name: 'ICS-95 (Imperial College Selection 95)',
+    origin: 'Trinidad y Tobago · Adaptado en Colombia',
+    category: 'Fino de Aroma',
+    sensoryProfile: 'Notas intensas a frutas tropicales maduras, floral suave, acidez cítrica balanceada y dulce de malta.',
+    grainIndexGrams: 1.4,
+    podIndex: 20,
+    yieldKgHaYear: 1500,
+    altitudeRange: '200 - 1.200 m.s.n.m.',
+    moniliaResistance: 'Tolerante',
+    escobaBrujaResistance: 'Alta',
+    fermentationDays: 6,
+    description: 'Clon trinitario universalmente reconocido por su extraordinaria calidad sensorial y estabilidad agronómica en zonas cacaoteras colombianas.'
+  },
+  {
+    id: 'clone_2',
+    code: 'FEAR-5',
+    name: 'FEAR-5 (Fedecacao Arauquita 5)',
+    origin: 'Arauca, Colombia (Selección Regional Fedecacao)',
+    category: 'Fino de Aroma',
+    sensoryProfile: 'Cacao fino con notas pronunciadas a nuez, caramelo, panela dulce y frutos secos.',
+    grainIndexGrams: 1.6,
+    podIndex: 17,
+    yieldKgHaYear: 1850,
+    altitudeRange: '100 - 900 m.s.n.m.',
+    moniliaResistance: 'Media',
+    escobaBrujaResistance: 'Tolerante',
+    fermentationDays: 6,
+    description: 'Clon regional colombiano galardonado en el Salón del Chocolate de París por su alto rendimiento y perfil fino de aroma.'
+  },
+  {
+    id: 'clone_3',
+    code: 'FLE-2',
+    name: 'FLE-2 (Fedecacao Lebrija 2)',
+    origin: 'Santander, Colombia (Selección Fedecacao)',
+    category: 'Fino de Aroma',
+    sensoryProfile: 'Perfil achocolatado profundo, notas especiadas, madera noble y frutos rojos.',
+    grainIndexGrams: 1.7,
+    podIndex: 16,
+    yieldKgHaYear: 1750,
+    altitudeRange: '400 - 1.200 m.s.n.m.',
+    moniliaResistance: 'Tolerante',
+    escobaBrujaResistance: 'Media',
+    fermentationDays: 6,
+    description: 'Material genético élite seleccionado en la montaña santandereana, destacado por su excelente índice de grano y calidad de taza.'
+  },
+  {
+    id: 'clone_4',
+    code: 'TSH-565',
+    name: 'TSH-565 (Trinidad Selected Hybrid 565)',
+    origin: 'Trinidad y Tobago',
+    category: 'Trinitario',
+    sensoryProfile: 'Aroma floral delicado, notas a miel de caña, frutas amarillas y bajo amargor.',
+    grainIndexGrams: 1.5,
+    podIndex: 18,
+    yieldKgHaYear: 1600,
+    altitudeRange: '200 - 1.100 m.s.n.m.',
+    moniliaResistance: 'Media',
+    escobaBrujaResistance: 'Alta',
+    fermentationDays: 6,
+    description: 'Híbrido trinitario de porte intermedio, muy utilizado como clon principal en sistemas agroforestales de exportación.'
+  },
+  {
+    id: 'clone_5',
+    code: 'CCN-51',
+    name: 'CCN-51 (Colección Castro Naranjal 51)',
+    origin: 'Ecuador',
+    category: 'Alta Productividad',
+    sensoryProfile: 'Cuerpo robusto, alta manteca de cacao, acidez media-alta que mejora con pre-secado y fermentación controlada.',
+    grainIndexGrams: 1.65,
+    podIndex: 15,
+    yieldKgHaYear: 2400,
+    altitudeRange: '0 - 1.200 m.s.n.m.',
+    moniliaResistance: 'Alta',
+    escobaBrujaResistance: 'Alta',
+    fermentationDays: 7,
+    description: 'Clon de altísima productividad, precocidad y porcentaje de grasa superior al 54%, ideal para estandarización de lotes comerciales.'
+  },
+  {
+    id: 'clone_6',
+    code: 'TCS-01',
+    name: 'TCS-01 (Theobroma Corpoica La Suiza 01)',
+    origin: 'Santander, Colombia (Agrosavia)',
+    category: 'Fino de Aroma',
+    sensoryProfile: 'Notas dulces frutales, cacao intenso, baja astringencia y excelente limpidez en licor.',
+    grainIndexGrams: 1.9,
+    podIndex: 14,
+    yieldKgHaYear: 1900,
+    altitudeRange: '300 - 1.100 m.s.n.m.',
+    moniliaResistance: 'Alta',
+    escobaBrujaResistance: 'Alta',
+    fermentationDays: 6,
+    description: 'Clon autocompatible desarrollado por Agrosavia con grano extra grande y alta tolerancia a moniliasis.'
+  },
+  {
+    id: 'clone_7',
+    code: 'CRI-CHO',
+    name: 'Criollo Nativo Chocoano',
+    origin: 'Pacífico Biogeográfico, Colombia',
+    category: 'Criollo Ancestral',
+    sensoryProfile: 'Almendra blanca/rosada con notas a jazmín, nuez de macadamia, crema y nula astringencia.',
+    grainIndexGrams: 1.35,
+    podIndex: 21,
+    yieldKgHaYear: 1100,
+    altitudeRange: '0 - 600 m.s.n.m.',
+    moniliaResistance: 'Media',
+    escobaBrujaResistance: 'Media',
+    fermentationDays: 5,
+    description: 'Genética ancestral del bosque húmedo tropical del Chocó, requiere fermentación corta de 4 a 5 días para preservar sus precursores florales.'
+  }
+];
 
 export const INITIAL_ASSOCIATIONS: Association[] = [
   {

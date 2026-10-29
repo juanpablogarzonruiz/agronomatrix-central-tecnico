@@ -65,11 +65,14 @@ export const NewReceptionModal: React.FC<NewReceptionModalProps> = ({
       if (preselectedProducer) {
         setSelectedProducerId(preselectedProducer.id);
         const pFarms = farms.filter((f) => f.producerId === preselectedProducer.id);
-        if (pFarms.length > 0) setSelectedFarmId(pFarms[0].id);
+        setSelectedFarmId(pFarms[0]?.id || '');
       } else if (producers.length > 0) {
         setSelectedProducerId(producers[0].id);
         const pFarms = farms.filter((f) => f.producerId === producers[0].id);
-        if (pFarms.length > 0) setSelectedFarmId(pFarms[0].id);
+        setSelectedFarmId(pFarms[0]?.id || '');
+      } else {
+        setSelectedProducerId('');
+        setSelectedFarmId('');
       }
 
       if (preselectedFarm) {

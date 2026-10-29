@@ -54,35 +54,33 @@ export const AssociationStats: React.FC<AssociationStatsProps> = ({
   return (
     <div className="space-y-4">
       {/* Association Header Card */}
-      <div className="glass-panel rounded-2xl p-4 sm:p-5 border border-emerald-500/20 relative overflow-hidden shadow-xl">
-        <div className="absolute -right-10 -bottom-10 w-48 h-48 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
+      <div className="glass-panel rounded-2xl p-4 sm:p-5 relative overflow-hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold font-mono-num uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+              <span className="px-2.5 py-0.5 rounded-md text-[11px] font-bold font-mono-num uppercase bg-emerald-100 text-emerald-800 border border-emerald-400">
                 {isAllSelected ? 'CONSOLIDADO GENERAL' : association?.code || 'ASOCIACIÓN'}
               </span>
-              <span className="text-xs text-slate-400 flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5 text-amber-400" />
+              <span className="text-xs text-slate-600 font-medium flex items-center gap-1">
+                <MapPin className="w-3.5 h-3.5 text-[#059669]" />
                 {isAllSelected 
                   ? 'Red Nacional de Cooperativas Cacaoteras'
                   : `${association?.municipality || 'Municipio'}, ${association?.department || 'Departamento'}`
                 }
               </span>
               {!isAllSelected && association?.certifiedHectares ? (
-                <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-400 flex items-center gap-1">
                   <Award className="w-3 h-3" />
                   {association.certifiedHectares} Ha Certificadas
                 </span>
               ) : null}
             </div>
 
-            <h1 className="text-xl sm:text-2xl font-serif-cacao font-bold text-white tracking-wide">
+            <h1 className="text-xl sm:text-2xl font-serif-cacao font-bold text-slate-900 tracking-wide">
               {isAllSelected ? 'Panorama Integral de Asociaciones y Beneficio' : association?.name}
             </h1>
 
-            <p className="text-xs text-slate-300 max-w-3xl leading-relaxed">
+            <p className="text-xs text-slate-600 max-w-3xl leading-relaxed">
               {isAllSelected 
                 ? 'Monitoreo consolidado del ecosistema de postcosecha: consulte productores vinculados, predios georreferenciados y centrales comunitarias operativas.'
                 : association?.description
@@ -92,11 +90,11 @@ export const AssociationStats: React.FC<AssociationStatsProps> = ({
 
           {/* Quick Contact & Info for Selected Association */}
           {!isAllSelected && association && (
-            <div className="flex flex-wrap sm:flex-nowrap items-center gap-3 bg-slate-900/60 p-3 rounded-xl border border-white/5">
+            <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5">
               {association.contactPhone && (
                 <a
                   href={`tel:${association.contactPhone}`}
-                  className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 transition border border-emerald-500/20"
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 btn-3d-emerald"
                 >
                   <Phone className="w-3.5 h-3.5" />
                   <span>{association.contactPhone}</span>
@@ -105,9 +103,9 @@ export const AssociationStats: React.FC<AssociationStatsProps> = ({
               {association.contactEmail && (
                 <a
                   href={`mailto:${association.contactEmail}`}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium flex items-center gap-1.5 transition border border-white/5"
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 btn-3d-light"
                 >
-                  <Mail className="w-3.5 h-3.5 text-amber-400" />
+                  <Mail className="w-3.5 h-3.5 text-[#059669]" />
                   <span>Contacto</span>
                 </a>
               )}
@@ -117,28 +115,28 @@ export const AssociationStats: React.FC<AssociationStatsProps> = ({
       </div>
 
       {/* 4 Dynamic Metric KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         
         {/* KPI 1: Productores */}
         <div 
           onClick={() => onSelectTab('productores')}
-          className="glass-panel rounded-2xl p-4 border border-white/10 hover:border-emerald-500/40 transition cursor-pointer group shadow-lg"
+          className="glass-panel rounded-2xl p-4 hover:-translate-y-0.5 transition cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-extrabold text-slate-600 uppercase tracking-wider">
               Productores
             </span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:bg-emerald-500 group-hover:text-slate-950 transition">
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 border border-emerald-400 shadow-[2px_2px_0px_#059669] flex items-center justify-center text-emerald-800 group-hover:bg-[#047857] group-hover:text-white transition">
               <Users className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono-num text-white">
+            <span className="text-2xl font-bold font-mono-num text-slate-900">
               {producers.length}
             </span>
-            <span className="text-xs text-slate-400">familias registradas</span>
+            <span className="text-xs text-slate-500 font-medium">familias registradas</span>
           </div>
-          <div className="mt-2 flex items-center gap-1.5 text-[11px] text-emerald-400">
+          <div className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-[#059669]">
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>100% con Habeas Data firmado</span>
           </div>
@@ -147,25 +145,25 @@ export const AssociationStats: React.FC<AssociationStatsProps> = ({
         {/* KPI 2: Fincas & Área */}
         <div 
           onClick={() => onSelectTab('fincas')}
-          className="glass-panel rounded-2xl p-4 border border-white/10 hover:border-emerald-500/40 transition cursor-pointer group shadow-lg"
+          className="glass-panel rounded-2xl p-4 hover:-translate-y-0.5 transition cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-extrabold text-slate-600 uppercase tracking-wider">
               Predios Cacaoteros
             </span>
-            <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400 group-hover:bg-amber-500 group-hover:text-slate-950 transition">
+            <div className="w-9 h-9 rounded-xl bg-amber-100 border border-amber-400 shadow-[2px_2px_0px_#d97706] flex items-center justify-center text-amber-800 group-hover:bg-amber-600 group-hover:text-white transition">
               <Trees className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono-num text-white">
+            <span className="text-2xl font-bold font-mono-num text-slate-900">
               {farms.length}
             </span>
-            <span className="text-xs text-slate-400 font-mono-num">
+            <span className="text-xs text-slate-600 font-mono-num font-semibold">
               ({totalCacaoHa.toFixed(1)} Ha Cacao)
             </span>
           </div>
-          <div className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-400">
+          <div className="mt-2 flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
             <span>Área Total: {totalAreaHa.toFixed(1)} Ha prediales</span>
           </div>
         </div>
@@ -173,23 +171,23 @@ export const AssociationStats: React.FC<AssociationStatsProps> = ({
         {/* KPI 3: Centrales de Beneficio */}
         <div 
           onClick={() => onSelectTab('centrales')}
-          className="glass-panel rounded-2xl p-4 border border-white/10 hover:border-emerald-500/40 transition cursor-pointer group shadow-lg"
+          className="glass-panel rounded-2xl p-4 hover:-translate-y-0.5 transition cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-extrabold text-slate-600 uppercase tracking-wider">
               Centrales Beneficio
             </span>
-            <div className="w-8 h-8 rounded-xl bg-teal-500/20 flex items-center justify-center text-teal-400 group-hover:bg-teal-500 group-hover:text-slate-950 transition">
+            <div className="w-9 h-9 rounded-xl bg-teal-100 border border-teal-400 shadow-[2px_2px_0px_#0d9488] flex items-center justify-center text-teal-800 group-hover:bg-teal-700 group-hover:text-white transition">
               <Factory className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono-num text-white">
+            <span className="text-2xl font-bold font-mono-num text-slate-900">
               {centrales.length}
             </span>
-            <span className="text-xs text-slate-400">plantas operativas</span>
+            <span className="text-xs text-slate-500 font-medium">plantas operativas</span>
           </div>
-          <div className="mt-2 flex items-center gap-2 text-[11px] text-teal-400 font-mono-num">
+          <div className="mt-2 flex items-center gap-2 text-[11px] text-teal-700 font-mono-num font-bold">
             <span>{totalBoxes} cajones</span>
             <span>·</span>
             <span>{totalDryingArea} m² secado</span>
@@ -199,23 +197,23 @@ export const AssociationStats: React.FC<AssociationStatsProps> = ({
         {/* KPI 4: Capacidad Mensual */}
         <div 
           onClick={() => onSelectTab('centrales')}
-          className="glass-panel rounded-2xl p-4 border border-white/10 hover:border-emerald-500/40 transition cursor-pointer group shadow-lg"
+          className="glass-panel rounded-2xl p-4 hover:-translate-y-0.5 transition cursor-pointer group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-extrabold text-slate-600 uppercase tracking-wider">
               Capacidad Mensual
             </span>
-            <div className="w-8 h-8 rounded-xl bg-purple-500/20 flex items-center justify-center text-purple-400 group-hover:bg-purple-500 group-hover:text-slate-950 transition">
+            <div className="w-9 h-9 rounded-xl bg-emerald-100 border border-emerald-400 shadow-[2px_2px_0px_#059669] flex items-center justify-center text-emerald-800 group-hover:bg-[#047857] group-hover:text-white transition">
               <Scale className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl font-bold font-mono-num text-white">
+            <span className="text-2xl font-bold font-mono-num text-slate-900">
               {(totalCapacityKg / 1000).toFixed(0)}k
             </span>
-            <span className="text-xs text-slate-400 font-mono-num">kg baba/mes</span>
+            <span className="text-xs text-slate-500 font-mono-num font-medium">kg baba/mes</span>
           </div>
-          <div className="mt-2 flex items-center gap-1.5 text-[11px] text-purple-300">
+          <div className="mt-2 flex items-center gap-1.5 text-[11px] text-[#059669] font-semibold">
             <TrendingUp className="w-3.5 h-3.5" />
             <span>Potencial: {(totalCapacityKg * 0.36 / 1000).toFixed(1)}k kg grano seco</span>
           </div>
@@ -224,20 +222,20 @@ export const AssociationStats: React.FC<AssociationStatsProps> = ({
 
       {/* Clones Distribution Bar */}
       {topClones.length > 0 && (
-        <div className="glass-panel-subtle rounded-xl p-3 px-4 border border-white/5 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-300 whitespace-nowrap">
-            <Layers className="w-3.5 h-3.5 text-amber-400" />
+        <div className="glass-panel-subtle rounded-xl p-3 px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2 text-xs font-bold text-slate-700 whitespace-nowrap">
+            <Layers className="w-3.5 h-3.5 text-[#059669]" />
             <span>Clones Predominantes en Predios:</span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {topClones.map(([cloneName, count]) => (
               <span
                 key={cloneName}
-                className="px-2.5 py-1 rounded-lg bg-slate-900/80 border border-white/10 text-xs text-slate-200 flex items-center gap-1.5 shadow-xs"
+                className="px-2.5 py-1 rounded-lg bg-white border border-slate-300 shadow-[1.5px_1.5px_0px_#64748b] text-xs text-slate-700 flex items-center gap-1.5"
               >
-                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                <span className="font-semibold text-white">{cloneName}</span>
-                <span className="font-mono-num text-[11px] text-slate-400">({count.toLocaleString()} árboles)</span>
+                <span className="w-2 h-2 rounded-full bg-[#059669]"></span>
+                <span className="font-bold text-slate-900">{cloneName}</span>
+                <span className="font-mono-num text-[11px] text-slate-500">({count.toLocaleString()} árboles)</span>
               </span>
             ))}
           </div>
