@@ -36,31 +36,31 @@ export const CentralDetailModal: React.FC<CentralDetailModalProps> = ({
   const dryEstimate = Math.round((central.capacityKgPerMonth || 0) * 0.36);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
-      <div className="glass-panel w-full max-w-2xl rounded-2xl border border-teal-500/30 overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+      <div className="w-full max-w-2xl rounded-2xl card-3d-outer overflow-hidden flex flex-col max-h-[92vh] bg-white text-slate-900 shadow-2xl">
         
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-white/10 flex items-center justify-between bg-slate-900/80">
+        <div className="p-4 sm:p-5 bg-gradient-to-r from-teal-50 via-emerald-50 to-white border-b-2 border-slate-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-700 flex items-center justify-center text-white shadow-md">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-teal-600 to-emerald-800 border-2 border-slate-900 shadow-[2px_2px_0px_#0f172a] flex items-center justify-center text-white shrink-0">
               <Factory className="w-6 h-6" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-white">{central.centralName || central.title}</h2>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono-num bg-teal-500/20 text-teal-300 border border-teal-500/30">
+                <h2 className="text-lg font-bold text-slate-900">{central.centralName || central.title}</h2>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-mono-num font-bold bg-teal-100 text-teal-800 border border-teal-400">
                   {central.code}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
-                <Building2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>{central.associationName || 'Asociación Vinculada'}</span>
+              <p className="text-xs text-slate-600 flex items-center gap-1.5 mt-0.5 font-medium">
+                <Building2 className="w-3.5 h-3.5 text-[#059669]" />
+                <span>{central.associationName || 'Asociación General del Ecosistema'}</span>
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10 transition cursor-pointer"
+            className="p-2 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 border border-slate-300 transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -71,39 +71,39 @@ export const CentralDetailModal: React.FC<CentralDetailModalProps> = ({
           
           {/* Quick Stats Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            <div className="bg-slate-900/70 p-3 rounded-xl border border-white/5">
-              <span className="text-[10px] uppercase font-semibold text-slate-400 block">Capacidad Mensual</span>
-              <span className="text-lg font-bold font-mono-num text-white">
-                {(central.capacityKgPerMonth / 1000).toFixed(0)}k <span className="text-xs font-normal text-slate-400">kg baba</span>
+            <div className="bg-slate-50 p-3 rounded-xl border border-slate-200">
+              <span className="text-[10px] uppercase font-bold text-slate-500 block">Capacidad Mensual</span>
+              <span className="text-lg font-bold font-mono-num text-slate-900">
+                {(central.capacityKgPerMonth / 1000).toFixed(0)}k <span className="text-xs font-normal text-slate-500">kg baba</span>
               </span>
             </div>
-            <div className="bg-slate-900/70 p-3 rounded-xl border border-white/5">
-              <span className="text-[10px] uppercase font-semibold text-emerald-400 block">Rendimiento Seco</span>
-              <span className="text-lg font-bold font-mono-num text-emerald-400">
-                {(dryEstimate / 1000).toFixed(1)}k <span className="text-xs font-normal text-slate-400">kg/mes</span>
+            <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-200">
+              <span className="text-[10px] uppercase font-bold text-[#047857] block">Rendimiento Seco</span>
+              <span className="text-lg font-bold font-mono-num text-[#047857]">
+                {(dryEstimate / 1000).toFixed(1)}k <span className="text-xs font-normal text-emerald-700">kg/mes</span>
               </span>
             </div>
-            <div className="bg-slate-900/70 p-3 rounded-xl border border-white/5">
-              <span className="text-[10px] uppercase font-semibold text-slate-400 block">Batería de Cajones</span>
-              <span className="text-lg font-bold font-mono-num text-amber-300">
-                {central.fermentationBoxesCount} <span className="text-xs font-normal text-slate-400">cajones</span>
+            <div className="bg-amber-50 p-3 rounded-xl border border-amber-200">
+              <span className="text-[10px] uppercase font-bold text-amber-800 block">Batería Cajones</span>
+              <span className="text-lg font-bold font-mono-num text-amber-900">
+                {central.fermentationBoxesCount} <span className="text-xs font-normal text-amber-700">cajones</span>
               </span>
             </div>
-            <div className="bg-slate-900/70 p-3 rounded-xl border border-white/5">
-              <span className="text-[10px] uppercase font-semibold text-slate-400 block">Área Secado Solar</span>
-              <span className="text-lg font-bold font-mono-num text-white">
-                {central.dryingAreaSqMeters} <span className="text-xs font-normal text-slate-400">m²</span>
+            <div className="bg-teal-50 p-3 rounded-xl border border-teal-200">
+              <span className="text-[10px] uppercase font-bold text-teal-800 block">Secado Solar</span>
+              <span className="text-lg font-bold font-mono-num text-teal-900">
+                {central.dryingAreaSqMeters} <span className="text-xs font-normal text-teal-700">m²</span>
               </span>
             </div>
           </div>
 
           {/* Description */}
           {central.description && (
-            <div className="bg-slate-900/40 p-3.5 rounded-xl border border-white/5 space-y-1">
-              <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+            <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-1">
+              <span className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block">
                 Descripción de la Infraestructura
               </span>
-              <p className="text-slate-300 leading-relaxed text-xs">
+              <p className="text-slate-700 leading-relaxed text-xs">
                 {central.description}
               </p>
             </div>
@@ -112,45 +112,45 @@ export const CentralDetailModal: React.FC<CentralDetailModalProps> = ({
           {/* Technical Infrastructure: Fermentación & Secado */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Fermentación */}
-            <div className="bg-slate-900/60 p-4 rounded-xl border border-white/5 space-y-2">
-              <div className="flex items-center gap-2 text-emerald-400 font-semibold text-xs">
+            <div className="bg-emerald-50/50 p-4 rounded-xl border border-emerald-200 space-y-2">
+              <div className="flex items-center gap-2 text-[#047857] font-bold text-xs">
                 <Boxes className="w-4 h-4" />
                 <span>Módulo de Fermentación</span>
               </div>
-              <p className="text-slate-300 text-xs">
+              <p className="text-slate-800 text-xs font-medium">
                 {central.fermentationType || 'Cajones de Madera Fina Escalonados en Cascada'}
               </p>
-              <div className="pt-2 border-t border-white/5 flex justify-between text-[11px] text-slate-400">
+              <div className="pt-2 border-t border-emerald-200 flex justify-between text-[11px] text-slate-600">
                 <span>Capacidad simultánea:</span>
-                <span className="font-mono-num font-semibold text-white">
+                <span className="font-mono-num font-bold text-slate-900">
                   {central.fermentationBoxesCount} lotes ({central.fermentationBoxesCount * 450} kg max)
                 </span>
               </div>
             </div>
 
             {/* Secado */}
-            <div className="bg-slate-900/60 p-4 rounded-xl border border-white/5 space-y-2">
-              <div className="flex items-center gap-2 text-amber-400 font-semibold text-xs">
+            <div className="bg-amber-50/50 p-4 rounded-xl border border-amber-200 space-y-2">
+              <div className="flex items-center gap-2 text-amber-800 font-bold text-xs">
                 <Sun className="w-4 h-4" />
                 <span>Módulo de Secado Solar</span>
               </div>
-              <p className="text-slate-300 text-xs">
+              <p className="text-slate-800 text-xs font-medium">
                 {central.dryingType || 'Marquesina Solar Tipo Túnel con Camas Rodantes'}
               </p>
-              <div className="pt-2 border-t border-white/5 flex justify-between text-[11px] text-slate-400">
+              <div className="pt-2 border-t border-amber-200 flex justify-between text-[11px] text-slate-600">
                 <span>Superficie de oreo:</span>
-                <span className="font-mono-num font-semibold text-white">{central.dryingAreaSqMeters} m² útiles</span>
+                <span className="font-mono-num font-bold text-slate-900">{central.dryingAreaSqMeters} m² útiles</span>
               </div>
             </div>
           </div>
 
           {/* Location & GPS */}
-          <div className="bg-slate-900/60 p-4 rounded-xl border border-white/5 space-y-2.5">
-            <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-2.5">
+            <span className="text-[11px] font-extrabold text-slate-600 uppercase tracking-wider block">
               Ubicación Geográfica de la Central
             </span>
-            <div className="flex items-center gap-2 text-slate-300">
-              <MapPin className="w-4 h-4 text-amber-400 shrink-0" />
+            <div className="flex items-center gap-2 text-slate-800 font-medium">
+              <MapPin className="w-4 h-4 text-amber-600 shrink-0" />
               <span>
                 {central.veredaOrAddress ? `${central.veredaOrAddress}, ` : ''}
                 {central.municipality}, {central.department}
@@ -158,9 +158,9 @@ export const CentralDetailModal: React.FC<CentralDetailModalProps> = ({
             </div>
 
             {central.latitude && central.longitude && (
-              <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-white/5">
-                <span className="font-mono-num text-slate-400 text-[11px] flex items-center gap-1.5">
-                  <Compass className="w-3.5 h-3.5 text-emerald-400" />
+              <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-200">
+                <span className="font-mono-num text-slate-600 text-[11px] flex items-center gap-1.5 font-bold">
+                  <Compass className="w-3.5 h-3.5 text-[#047857]" />
                   Lat: {central.latitude}, Lon: {central.longitude}
                 </span>
 
@@ -169,7 +169,7 @@ export const CentralDetailModal: React.FC<CentralDetailModalProps> = ({
                     href={mapsUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 text-[11px] font-semibold flex items-center gap-1 transition"
+                    className="px-2.5 py-1 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-[#047857] text-[11px] font-bold flex items-center gap-1 transition border border-emerald-300"
                   >
                     <span>Abrir en Google Maps</span>
                     <ExternalLink className="w-3 h-3" />
@@ -181,10 +181,10 @@ export const CentralDetailModal: React.FC<CentralDetailModalProps> = ({
         </div>
 
         {/* Modal Actions */}
-        <div className="p-4 border-t border-white/10 bg-slate-900/80 flex items-center justify-between gap-3">
+        <div className="p-4 border-t-2 border-slate-200 bg-slate-50 flex items-center justify-between gap-3">
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition cursor-pointer"
+            className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-200 transition cursor-pointer btn-3d-light"
           >
             Cerrar
           </button>
@@ -193,7 +193,7 @@ export const CentralDetailModal: React.FC<CentralDetailModalProps> = ({
               onClose();
               onStartReception(central);
             }}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-teal-600/30 transition cursor-pointer"
+            className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer btn-3d-emerald"
           >
             <Scale className="w-4 h-4" />
             <span>Registrar Recepción en esta Central</span>

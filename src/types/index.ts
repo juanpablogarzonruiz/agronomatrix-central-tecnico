@@ -137,6 +137,9 @@ export interface Farm {
   dynamicValues?: Record<string, any>;
   deforestationStatus?: 'compliant' | 'warning' | 'alert' | 'unverified';
   deforestationDetails?: string;
+  whispAnalysisResult?: any;
+  whispJobToken?: string;
+  whispAnalyzedAt?: string;
   kmlFileName?: string;
   visitDate?: string;
   recommendations?: string;

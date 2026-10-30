@@ -64,7 +64,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   const { user, logout, lockSession } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [showQRModal, setShowQRModal] = useState<boolean>(false);
-  const currentAssoc = associations.find((a) => a.id === selectedAssociationId);
+  const currentAssoc = selectedAssociationId === 'all'
+    ? ({
+        id: 'all',
+        name: 'Todas las Asociaciones (Red Global)',
+        code: 'TODAS',
+        department: 'Nacional'
+      } as Association)
+    : associations.find((a) => a.id === selectedAssociationId);
 
   const handleNavigate = (tab: MainTab) => {
     onSelectTab(tab);
@@ -245,6 +252,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onChange={(e) => onSelectAssociation(e.target.value)}
                     className="w-full rounded-xl px-3.5 py-2.5 text-xs font-bold text-slate-900 input-3d-emerald cursor-pointer"
                   >
+                    <option value="all">🌟 Todas las Asociaciones (Ver Todos)</option>
                     {associations.map((assoc) => (
                       <option key={assoc.id} value={assoc.id}>
                         {assoc.name} ({assoc.department})

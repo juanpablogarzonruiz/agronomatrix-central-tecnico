@@ -57,7 +57,9 @@ const AppDashboard: React.FC = () => {
   const [isOnline, setIsOnline] = useState<boolean>(true);
 
   // App Navigation & Selection State
-  const [selectedAssociationId, setSelectedAssociationId] = useState<string>('asoc_1');
+  const [selectedAssociationId, setSelectedAssociationId] = useState<string>(() => {
+    return localStorage.getItem('agronomatrix_selected_assoc_id') || '';
+  });
   const [activeTab, setActiveTab] = useState<MainTab>('productores');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
@@ -113,25 +115,62 @@ const AppDashboard: React.FC = () => {
     };
   }, []);
 
-  // Ensure an active association is selected
+  // Ensure an active association is selected, prioritizing stored association or the association that has data
   useEffect(() => {
     if (associations.length > 0) {
-      const exists = associations.some((a) => a.id === selectedAssociationId);
-      if (!exists) {
-        setSelectedAssociationId(associations[0].id);
+      const savedAssocId = localStorage.getItem('agronomatrix_selected_assoc_id');
+      if (savedAssocId) {
+        if (savedAssocId === 'all' || associations.some((a) => a.id === savedAssocId)) {
+          setSelectedAssociationId(savedAssocId);
+          return;
+        }
+      }
+      // If no valid saved association, check which association has producers or farms
+      const assocWithData = associations.find((a) => {
+        return (
+          producers.some((p) => p.associationId === a.id || p.associationCode === a.code) ||
+          farms.some((f) => f.associationId === a.id || f.associationCode === a.code)
+        );
+      });
+      if (assocWithData) {
+        setSelectedAssociationId(assocWithData.id);
+        localStorage.setItem('agronomatrix_selected_assoc_id', assocWithData.id);
+      } else {
+        const defaultId = associations[0]?.id || 'all';
+        setSelectedAssociationId(defaultId);
+        localStorage.setItem('agronomatrix_selected_assoc_id', defaultId);
       }
     }
-  }, [associations, selectedAssociationId]);
+  }, [associations, producers, farms]);
+
+  const handleSelectAssociation = (id: string) => {
+    setSelectedAssociationId(id);
+    localStorage.setItem('agronomatrix_selected_assoc_id', id);
+  };
 
   const currentAssociation = useMemo(() => {
+    if (selectedAssociationId === 'all') {
+      const totalHa = farms.reduce((acc, f) => acc + (f.totalAreaHa || 0), 0);
+      return {
+        id: 'all',
+        name: 'Todas las Asociaciones (Red Global)',
+        code: 'TODAS',
+        description: 'Visualización consolidada de todos los productores, predios y operaciones de todas las asociaciones.',
+        department: 'Nacional',
+        municipality: 'Colombia',
+        totalMembers: producers.length,
+        certifiedHectares: Math.round(totalHa * 10) / 10
+      } as Association;
+    }
     return associations.find((a) => a.id === selectedAssociationId) || associations[0];
-  }, [associations, selectedAssociationId]);
+  }, [associations, selectedAssociationId, producers.length, farms]);
 
   const activeAssociationId = currentAssociation?.id || selectedAssociationId;
 
-  // Producers strictly associated with the selected Association
+  // Producers associated with the selected Association (or ALL when 'all' is selected)
   const associationProducers = useMemo(() => {
-    if (!currentAssociation) return [];
+    if (selectedAssociationId === 'all') return producers;
+    if (!currentAssociation) return producers;
     return producers.filter((p) => {
       if (p.associationId && p.associationId.trim() !== '') {
         return p.associationId === currentAssociation.id;
@@ -144,16 +183,17 @@ const AppDashboard: React.FC = () => {
       }
       return false;
     });
-  }, [producers, currentAssociation]);
+  }, [producers, currentAssociation, selectedAssociationId]);
 
   // Set of producer IDs in the active association for farm matching
   const assocProducerIds = useMemo(() => {
     return new Set(associationProducers.map((p) => p.id));
   }, [associationProducers]);
 
-  // Farms strictly associated with the selected Association
+  // Farms associated with the selected Association (or ALL when 'all' is selected)
   const associationFarms = useMemo(() => {
-    if (!currentAssociation) return [];
+    if (selectedAssociationId === 'all') return farms;
+    if (!currentAssociation) return farms;
     return farms.filter((f) => {
       if (f.associationId && f.associationId.trim() !== '') {
         return f.associationId === currentAssociation.id;
@@ -169,7 +209,7 @@ const AppDashboard: React.FC = () => {
       }
       return false;
     });
-  }, [farms, assocProducerIds, currentAssociation]);
+  }, [farms, assocProducerIds, currentAssociation, selectedAssociationId]);
 
   // Receptions strictly associated with the selected Association
   const associationReceptions = useMemo(() => {
@@ -354,8 +394,8 @@ const AppDashboard: React.FC = () => {
       {/* Top Navigation with Hamburger Menu */}
       <Navbar
         associations={associations}
-        selectedAssociationId={activeAssociationId}
-        onSelectAssociation={(id) => setSelectedAssociationId(id)}
+        selectedAssociationId={selectedAssociationId}
+        onSelectAssociation={handleSelectAssociation}
         activeTab={activeTab}
         onSelectTab={(tab) => setActiveTab(tab)}
         searchQuery={searchQuery}
@@ -407,7 +447,7 @@ const AppDashboard: React.FC = () => {
                   {currentAssociation.certifiedHectares ? (
                     <>
                       <span>·</span>
-                      <span className="text-amber-800 font-semibold">{currentAssociation.certifiedHectares} Ha Certificadas</span>
+                      <span className="text-amber-800 font-semibold">{currentAssociation.certifiedHectares} Ha</span>
                     </>
                   ) : null}
                 </p>
@@ -422,10 +462,13 @@ const AppDashboard: React.FC = () => {
             <div className="relative">
               <select
                 id="main-assoc-select"
-                value={activeAssociationId}
-                onChange={(e) => setSelectedAssociationId(e.target.value)}
+                value={selectedAssociationId}
+                onChange={(e) => handleSelectAssociation(e.target.value)}
                 className="rounded-xl px-4 py-2.5 text-xs font-extrabold text-slate-900 input-3d-emerald cursor-pointer pr-8 appearance-none bg-emerald-50"
               >
+                <option value="all" className="bg-white text-slate-900 font-bold">
+                  🌟 Todas las Asociaciones (Ver Todos los Registros)
+                </option>
                 {associations.map((assoc) => (
                   <option key={assoc.id} value={assoc.id} className="bg-white text-slate-900 font-bold">
                     {assoc.name} ({assoc.code} · {assoc.department})

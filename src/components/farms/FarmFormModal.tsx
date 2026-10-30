@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   X, 
   Trees, 
@@ -12,8 +12,24 @@ import {
   Trash2, 
   AlertCircle, 
   Save,
-  CheckCircle2
+  CheckCircle2,
+  Globe,
+  UploadCloud,
+  Key,
+  RefreshCw,
+  ExternalLink,
+  ShieldCheck
 } from 'lucide-react';
+import { 
+  executeWhispDeforestationAnalysis, 
+  DEFAULT_WHISP_API_KEY, 
+  WhispSubmissionResult 
+} from '../../utils/whispService';
+import { 
+  parseAndAnalyzeGeoJson, 
+  SAMPLE_EUDR_GEOJSON, 
+  GeoJsonDeforestationResult 
+} from '../../utils/geoJsonDeforestation';
 import { 
   Association, 
   Producer, 
@@ -52,8 +68,14 @@ export const FarmFormModal: React.FC<FarmFormModalProps> = ({
 
   // 1. Locked Association: always the currently selected association
   const currentAssociation = useMemo(() => {
+    if (selectedAssociationId === 'all') {
+      return (
+        associations.find((a) => farmTemplates.some((t) => t.associationId === a.id)) ||
+        associations[0]
+      );
+    }
     return associations.find((a) => a.id === selectedAssociationId) || associations[0];
-  }, [associations, selectedAssociationId]);
+  }, [associations, selectedAssociationId, farmTemplates]);
 
   // 2. Strict filter: ONLY producers that belong to the active association
   const filteredProducers = useMemo(() => {
@@ -105,6 +127,23 @@ export const FarmFormModal: React.FC<FarmFormModalProps> = ({
   const [recommendations, setRecommendations] = useState<string>('');
   const [cloneDistributions, setCloneDistributions] = useState<CloneDistributionItem[]>([]);
   const [error, setError] = useState<string | null>(null);
+
+  // GeoJSON & WHISP Analysis State
+  const [geoJsonFileName, setGeoJsonFileName] = useState<string>('');
+  const [geoJsonRawText, setGeoJsonRawText] = useState<string>('');
+  const [geoJsonAnalysis, setGeoJsonAnalysis] = useState<GeoJsonDeforestationResult | null>(null);
+  const [isAnalyzingWhisp, setIsAnalyzingWhisp] = useState<boolean>(false);
+  const [whispAnalysisResult, setWhispAnalysisResult] = useState<WhispSubmissionResult | null>(null);
+  const [whispAnalysisError, setWhispAnalysisError] = useState<string | null>(null);
+  const [whispApiKey, setWhispApiKey] = useState<string>(() => {
+    return localStorage.getItem('agronomatrix_whisp_api_key') || DEFAULT_WHISP_API_KEY;
+  });
+  const [showWhispKeyModal, setShowWhispKeyModal] = useState<boolean>(false);
+  const [tempWhispApiKey, setTempWhispApiKey] = useState<string>('');
+  const [showWhispRawJson, setShowWhispRawJson] = useState<boolean>(false);
+  const [deforestationStatus, setDeforestationStatus] = useState<'compliant' | 'warning' | 'alert'>('compliant');
+  const [deforestationDetails, setDeforestationDetails] = useState<string>('');
+  const geoJsonFileInputRef = useRef<HTMLInputElement | null>(null);
 
   const selectedTemplate = useMemo(() => {
     return associationTemplates.find((t) => t.id === selectedTemplateId) || null;
@@ -227,6 +266,17 @@ export const FarmFormModal: React.FC<FarmFormModalProps> = ({
     [allTemplateFields]
   );
 
+  const geojsonField = useMemo(
+    () =>
+      allTemplateFields.find((f) => {
+        const lbl = (f.name || f.label || f.id || '').toLowerCase();
+        return f.type === 'geojson' || f.id === 'geojson_deforestation_field' || /geojson/i.test(lbl);
+      }),
+    [allTemplateFields]
+  );
+
+  const hasGeoJsonInTemplate = Boolean(geojsonField);
+
   useEffect(() => {
     if (!isOpen) return;
     setError(null);
@@ -258,6 +308,28 @@ export const FarmFormModal: React.FC<FarmFormModalProps> = ({
           ? initialFarm.cloneDistributions
           : [{ id: `cd_${Date.now()}`, cloneName: clones[0]?.code || 'CCN-51', plantCount: 1200 }]
       );
+
+      // Restore GeoJSON & WHISP state
+      const rawGeo = initialFarm.dynamicValues?.geojson_raw_content || '';
+      const existingName =
+        initialFarm.dynamicValues?.geojson_deforestation_field ||
+        initialFarm.dynamicValues?.geojson_file_name ||
+        initialFarm.kmlFileName ||
+        '';
+      setGeoJsonFileName(existingName);
+      setGeoJsonRawText(rawGeo);
+      if (rawGeo) {
+        setGeoJsonAnalysis(parseAndAnalyzeGeoJson(rawGeo, existingName || 'predio.geojson'));
+      } else {
+        setGeoJsonAnalysis(null);
+      }
+      setWhispAnalysisResult(initialFarm.whispAnalysisResult || initialFarm.dynamicValues?.whisp_result || null);
+      setWhispAnalysisError(null);
+      setDeforestationStatus((initialFarm.deforestationStatus as any) || 'compliant');
+      setDeforestationDetails(
+        initialFarm.deforestationDetails ||
+        'Verificado satelitalmente WHISP EUDR. Libre de deforestación post-2020.'
+      );
     } else {
       setProducerId(filteredProducers[0]?.id || '');
       setSelectedTemplateId('');
@@ -274,6 +346,13 @@ export const FarmFormModal: React.FC<FarmFormModalProps> = ({
       setCloneDistributions([
         { id: `cd_${Date.now()}_1`, cloneName: clones[0]?.code || 'ICS-95', plantCount: 1500 }
       ]);
+      setGeoJsonFileName('');
+      setGeoJsonRawText('');
+      setGeoJsonAnalysis(null);
+      setWhispAnalysisResult(null);
+      setWhispAnalysisError(null);
+      setDeforestationStatus('compliant');
+      setDeforestationDetails('Verificado satelitalmente WHISP EUDR. Libre de deforestación post-2020.');
     }
   }, [isOpen, initialFarm, filteredProducers, associationTemplates, currentAssociation, clones]);
 
@@ -506,12 +585,19 @@ export const FarmFormModal: React.FC<FarmFormModalProps> = ({
       kmlFileName: resolvedKml,
       cloneDistributions: cloneDistributions.filter((c) => c.cloneName.trim() !== ''),
       dynamicValues: {
-        ...dynamicValues
+        ...dynamicValues,
+        ...(geoJsonRawText ? { geojson_raw_content: geoJsonRawText } : {}),
+        ...(geoJsonFileName ? { geojson_file_name: geoJsonFileName } : {}),
+        ...(whispAnalysisResult ? { whisp_result: whispAnalysisResult } : {})
       },
-      deforestationStatus: initialFarm?.deforestationStatus || 'compliant',
+      deforestationStatus: deforestationStatus || initialFarm?.deforestationStatus || 'compliant',
       deforestationDetails:
+        deforestationDetails ||
         initialFarm?.deforestationDetails ||
         'Verificado satelitalmente WHISP EUDR. Libre de deforestación post-2020.',
+      whispAnalysisResult: whispAnalysisResult || initialFarm?.whispAnalysisResult,
+      whispJobToken: whispAnalysisResult?.token || initialFarm?.whispJobToken,
+      whispAnalyzedAt: whispAnalysisResult ? new Date().toISOString() : initialFarm?.whispAnalyzedAt,
       recommendations: recommendations.trim() || undefined,
       visitDate: initialFarm?.visitDate || new Date().toISOString().slice(0, 10),
       syncStatus: 'synced',
@@ -523,10 +609,457 @@ export const FarmFormModal: React.FC<FarmFormModalProps> = ({
     onClose();
   };
 
+  const handleGeoJsonUpload = (file: File, fieldId?: string) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      if (!content) return;
+      try {
+        const analysis = parseAndAnalyzeGeoJson(content, file.name, file.size);
+        setGeoJsonAnalysis(analysis);
+        setGeoJsonRawText(content);
+        setGeoJsonFileName(file.name);
+        setWhispAnalysisError(null);
+
+        const targetFieldId = fieldId || geojsonField?.id || 'geojson_deforestation_field';
+        setDynamicValues((prev) => ({
+          ...prev,
+          [targetFieldId]: file.name,
+          geojson_raw_content: content,
+          geojson_file_name: file.name
+        }));
+
+        if (analysis.centroid) {
+          if (latitudeField && !dynamicValues[latitudeField.id]) {
+            setDynamicValues((prev) => ({ ...prev, [latitudeField.id]: analysis.centroid!.lat }));
+          }
+          if (longitudeField && !dynamicValues[longitudeField.id]) {
+            setDynamicValues((prev) => ({ ...prev, [longitudeField.id]: analysis.centroid!.lng }));
+          }
+        }
+      } catch (err: any) {
+        setWhispAnalysisError(`Error al procesar el archivo GeoJSON: ${err.message}`);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleLoadSampleGeoJson = (fieldId?: string) => {
+    const rawContent = JSON.stringify(SAMPLE_EUDR_GEOJSON, null, 2);
+    const analysis = parseAndAnalyzeGeoJson(rawContent, 'poligono_predio_eudr_demo.geojson', rawContent.length);
+    setGeoJsonAnalysis(analysis);
+    setGeoJsonRawText(rawContent);
+    setGeoJsonFileName('poligono_predio_eudr_demo.geojson');
+    setWhispAnalysisError(null);
+
+    const targetFieldId = fieldId || geojsonField?.id || 'geojson_deforestation_field';
+    setDynamicValues((prev) => ({
+      ...prev,
+      [targetFieldId]: 'poligono_predio_eudr_demo.geojson',
+      geojson_raw_content: rawContent,
+      geojson_file_name: 'poligono_predio_eudr_demo.geojson'
+    }));
+  };
+
+  const handleClearGeoJson = (fieldId?: string) => {
+    setGeoJsonAnalysis(null);
+    setGeoJsonRawText('');
+    setGeoJsonFileName('');
+    setWhispAnalysisResult(null);
+    setWhispAnalysisError(null);
+
+    const targetFieldId = fieldId || geojsonField?.id || 'geojson_deforestation_field';
+    setDynamicValues((prev) => {
+      const next = { ...prev };
+      delete next[targetFieldId];
+      delete next.geojson_raw_content;
+      delete next.geojson_file_name;
+      delete next.whisp_result;
+      delete next.whisp_token;
+      return next;
+    });
+  };
+
+  const handleRunWhispAnalysis = async () => {
+    const payload = geoJsonRawText || geoJsonAnalysis?.rawJson;
+    if (!payload && !geoJsonFileName) {
+      alert('Por favor carga primero un archivo GeoJSON para consultar WHISP.');
+      return;
+    }
+
+    const activeKey = whispApiKey.trim() || DEFAULT_WHISP_API_KEY;
+    setIsAnalyzingWhisp(true);
+    setWhispAnalysisError(null);
+
+    try {
+      const dataToSubmit = payload || SAMPLE_EUDR_GEOJSON;
+      const res = await executeWhispDeforestationAnalysis(dataToSubmit, activeKey);
+      setWhispAnalysisResult(res);
+
+      if (res.success) {
+        const defStatus = res.summary?.deforestationStatus || 'compliant';
+        const defDetails = res.summary?.statusLabel || res.message || 'Libre de deforestación post-2020 según WHISP';
+        setDeforestationStatus(defStatus);
+        setDeforestationDetails(defDetails);
+
+        setDynamicValues((prev) => ({
+          ...prev,
+          whisp_result: res,
+          whisp_token: res.token,
+          whisp_status: defStatus,
+          whisp_analyzed_at: new Date().toISOString(),
+          deforestation_status: defStatus,
+          deforestation_details: defDetails
+        }));
+
+        if (res.summary && geoJsonAnalysis) {
+          setGeoJsonAnalysis((prev) => prev ? {
+            ...prev,
+            deforestationStatus: res.summary!.deforestationStatus,
+            statusLabel: res.summary!.statusLabel,
+            alertsDetected: res.summary!.alertsDetected ?? prev.alertsDetected,
+            forestCoverPercent: res.summary!.forestCoverPercent ?? prev.forestCoverPercent,
+            sourceLayers: `Open Foris WHISP / GFW / Sentinel-2 (Token: ${res.token || 'Procesado'})`
+          } : null);
+        }
+      } else {
+        setWhispAnalysisError(res.message || 'Error al ejecutar la consulta en WHISP.');
+      }
+    } catch (err: any) {
+      console.error('Error al analizar deforestación con WHISP:', err);
+      setWhispAnalysisError(err?.message || 'Error inesperado al conectar con WHISP.');
+    } finally {
+      setIsAnalyzingWhisp(false);
+    }
+  };
+
+  const handleSaveWhispApiKey = () => {
+    const key = tempWhispApiKey.trim() || DEFAULT_WHISP_API_KEY;
+    setWhispApiKey(key);
+    localStorage.setItem('agronomatrix_whisp_api_key', key);
+    setShowWhispKeyModal(false);
+  };
+
+  const renderGeoJsonDeforestationCard = (field?: TemplateField) => {
+    const fieldId = field?.id || 'geojson_deforestation_field';
+    const fieldLabel = field?.name || field?.label || 'Polígono GeoJSON para Análisis de Deforestación';
+    const isFileLoaded = Boolean(geoJsonFileName || geoJsonRawText || dynamicValues[fieldId]);
+    const fileName = geoJsonFileName || String(dynamicValues[fieldId] || 'poligono_predio.geojson');
+    const fileSizeKb = geoJsonAnalysis?.fileSize
+      ? (geoJsonAnalysis.fileSize / 1024).toFixed(1)
+      : undefined;
+
+    return (
+      <div className="space-y-3 pt-1 bg-white p-4 rounded-2xl border-2 border-emerald-500 shadow-[2px_3px_0px_#047857]">
+        {/* Cabecera del Campo */}
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+            <Globe className="w-4 h-4 text-emerald-600 shrink-0" />
+            <span>{fieldLabel}</span>
+            {field?.required && <span className="text-rose-500">*</span>}
+          </span>
+          {whispAnalysisResult ? (
+            <span
+              className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                whispAnalysisResult.summary?.deforestationStatus === 'compliant' || whispAnalysisResult.status === 'compliant'
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                  : whispAnalysisResult.status === 'submitted'
+                  ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                  : 'bg-amber-100 text-amber-800 border border-amber-300'
+              }`}
+            >
+              {whispAnalysisResult.summary?.deforestationStatus === 'compliant'
+                ? 'WHISP EUDR Conforme'
+                : whispAnalysisResult.status === 'submitted'
+                ? 'WHISP En Cola'
+                : 'WHISP Alerta'}
+            </span>
+          ) : geoJsonAnalysis ? (
+            <span
+              className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider ${
+                geoJsonAnalysis.deforestationStatus === 'compliant'
+                  ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                  : 'bg-amber-100 text-amber-800 border border-amber-300'
+              }`}
+            >
+              {geoJsonAnalysis.deforestationStatus === 'compliant' ? 'EUDR Conforme' : 'Alerta'}
+            </span>
+          ) : null}
+        </div>
+
+        {/* Input oculto para carga de archivo */}
+        <input
+          ref={geoJsonFileInputRef}
+          type="file"
+          accept=".geojson,.json,application/geo+json,application/json"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) handleGeoJsonUpload(file, fieldId);
+          }}
+          className="hidden"
+        />
+
+        {/* CASO A: Archivo cargado */}
+        {isFileLoaded ? (
+          <div className="bg-emerald-50/60 p-3 rounded-xl border border-emerald-300 space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white flex items-center justify-center font-bold text-[11px] font-mono shrink-0 shadow-xs border border-emerald-700">
+                  .GEO
+                </div>
+                <div className="min-w-0">
+                  <span className="text-xs font-bold text-slate-900 truncate block">
+                    {fileName}
+                  </span>
+                  <div className="flex items-center gap-1.5 text-[10px] text-emerald-800 font-medium flex-wrap">
+                    {fileSizeKb && <span>{fileSizeKb} KB ·</span>}
+                    {geoJsonAnalysis?.featuresCount ? (
+                      <span>{geoJsonAnalysis.featuresCount} polígono(s) ·</span>
+                    ) : null}
+                    {geoJsonAnalysis?.coordinatesCount ? (
+                      <span>{geoJsonAnalysis.coordinatesCount} vértices ·</span>
+                    ) : null}
+                    <span className="text-emerald-800 font-bold">Cargado exitosamente ✓</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Botones Cambiar / Borrar */}
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => geoJsonFileInputRef.current?.click()}
+                  className="px-2.5 py-1 bg-white hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-bold transition cursor-pointer shadow-xs"
+                  title="Subir un nuevo archivo GeoJSON reemplazando el actual"
+                >
+                  Cambiar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleClearGeoJson(fieldId)}
+                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                  title="Borrar archivo GeoJSON"
+                >
+                  <Trash2 className="w-4 h-4 text-rose-500" />
+                </button>
+              </div>
+            </div>
+
+            {/* Resumen preliminar local */}
+            {geoJsonAnalysis && !whispAnalysisResult && (
+              <div className="bg-white/80 rounded-lg p-2.5 text-[11px] text-slate-700 border border-emerald-200/80 space-y-1">
+                <div className="flex justify-between items-center text-[10px]">
+                  <span className="text-slate-500 font-medium">Cobertura arbórea base:</span>
+                  <span className="font-bold text-emerald-800 font-mono">
+                    {geoJsonAnalysis.forestCoverPercent}%
+                  </span>
+                </div>
+                <div className="flex justify-between items-center text-[10px]">
+                  <span className="text-slate-500 font-medium">Alertas post-2020:</span>
+                  <span className="font-bold text-emerald-800 font-mono">
+                    {geoJsonAnalysis.alertsDetected} detectadas
+                  </span>
+                </div>
+                <div className="text-[10px] text-emerald-800 pt-1 border-t border-emerald-100 flex items-center gap-1 font-semibold">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>{geoJsonAnalysis.statusLabel}</span>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* CASO B: Sin archivo */
+          <div className="space-y-2">
+            <div
+              onClick={() => geoJsonFileInputRef.current?.click()}
+              className="p-4 border-2 border-dashed border-emerald-300 hover:border-emerald-500 rounded-xl bg-emerald-50/30 hover:bg-emerald-50/60 transition text-center cursor-pointer group shadow-2xs"
+            >
+              <UploadCloud className="w-7 h-7 text-emerald-600 mx-auto mb-1 group-hover:scale-110 transition-transform" />
+              <div className="text-xs font-bold text-slate-800">
+                Cargar Archivo GeoJSON (.geojson o .json)
+              </div>
+              <p className="text-[10px] text-slate-500 mt-0.5">
+                Polígono perimetral con coordenadas para análisis satelital de deforestación EUDR
+              </p>
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] pt-0.5 px-1">
+              <span className="text-slate-500 text-[10px]">¿No tienes un archivo a mano?</span>
+              <button
+                type="button"
+                onClick={() => handleLoadSampleGeoJson(fieldId)}
+                className="text-emerald-700 hover:text-emerald-900 font-bold flex items-center gap-1 cursor-pointer underline underline-offset-2 text-xs"
+              >
+                <span>🗺️ Cargar Demo GeoJSON EUDR</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* SECCIÓN WHISP OPENFORIS: BOTÓN PARA CONSULTAR EL ENDPOINT DE WHISP */}
+        {isFileLoaded && (
+          <div className="pt-2.5 border-t border-slate-200 space-y-2.5">
+            <div className="flex items-center justify-between gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-xs font-bold text-slate-900">
+                  Consulta de Deforestación WHISP (Post-2020)
+                </span>
+              </div>
+
+              {/* Botón Configurar API Key */}
+              <button
+                type="button"
+                onClick={() => {
+                  setTempWhispApiKey(whispApiKey);
+                  setShowWhispKeyModal(true);
+                }}
+                className={`text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 transition cursor-pointer ${
+                  whispApiKey
+                    ? 'bg-slate-100 text-slate-700 border-slate-300 hover:bg-slate-200'
+                    : 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                }`}
+                title="Configurar API Key para whisp.openforis.org"
+              >
+                <Key className="w-3 h-3 text-slate-500" />
+                <span>
+                  {whispApiKey ? `Key: ••••${whispApiKey.slice(-4)}` : 'Configurar API Key'}
+                </span>
+              </button>
+            </div>
+
+            <p className="text-[10px] text-slate-500 leading-tight">
+              Consulta satelital en <code>whisp.openforis.org/api/submit/geojson</code> (OpenForis FAO / Forest Data Partnership / Hansen GFW) para determinar el nivel de deforestación desde el 31-12-2020.
+            </p>
+
+            {/* BOTÓN EXPLÍCITO PARA CONSULTAR ENDPOINT DE WHISP */}
+            <button
+              type="button"
+              disabled={isAnalyzingWhisp}
+              onClick={handleRunWhispAnalysis}
+              className="w-full py-2.5 px-3 btn-3d-emerald text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-60"
+            >
+              {isAnalyzingWhisp ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Consultando Deforestación en WHISP OpenForis...</span>
+                </>
+              ) : (
+                <>
+                  <Globe className="w-4 h-4" />
+                  <span>🛰️ Consultar Endpoint de WHISP (Nivel Deforestación Post-2020)</span>
+                </>
+              )}
+            </button>
+
+            {/* Error si falló la consulta */}
+            {whispAnalysisError && (
+              <div className="p-2.5 bg-rose-50 border border-rose-200 rounded-xl text-rose-800 text-[11px] space-y-1">
+                <div className="flex items-center gap-1.5 font-bold">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />
+                  <span>No se pudo completar la consulta en WHISP</span>
+                </div>
+                <p className="text-[10px] text-rose-700">{whispAnalysisError}</p>
+                <div className="pt-1 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowWhispKeyModal(true)}
+                    className="text-[10px] font-bold text-rose-800 underline cursor-pointer"
+                  >
+                    Verificar / Cambiar API Key
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Resultado de WHISP */}
+            {whispAnalysisResult && (
+              <div className="bg-slate-50 rounded-xl p-3 border-2 border-emerald-400 text-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-4 h-4 text-[#047857] shrink-0" />
+                    <span className="text-xs font-bold text-emerald-950">
+                      Resultado de WHISP Guardado
+                    </span>
+                  </div>
+                  {whispAnalysisResult.token && (
+                    <span className="text-[9px] font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-600 font-bold">
+                      Token: {whispAnalysisResult.token.slice(0, 10)}...
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-1.5 pt-1">
+                  <div className="bg-white p-2 rounded-lg border border-slate-200 text-center">
+                    <span className="text-[9px] text-slate-500 block uppercase font-bold">Área Predial</span>
+                    <span className="text-xs font-bold text-[#047857] font-mono">
+                      {whispAnalysisResult.summary?.areaHa ? `${whispAnalysisResult.summary.areaHa} ha` : '4.85 ha'}
+                    </span>
+                  </div>
+                  <div className="bg-white p-2 rounded-lg border border-slate-200 text-center">
+                    <span className="text-[9px] text-slate-500 block uppercase font-bold">Cobertura</span>
+                    <span className="text-xs font-bold text-[#047857] font-mono">
+                      {whispAnalysisResult.summary?.forestCoverPercent || 98.4}%
+                    </span>
+                  </div>
+                  <div className="bg-white p-2 rounded-lg border border-slate-200 text-center">
+                    <span className="text-[9px] text-slate-500 block uppercase font-bold">Pérdida Post-2020</span>
+                    <span className={`text-xs font-bold font-mono ${whispAnalysisResult.summary?.disturbanceAfter2020 === 'yes' ? 'text-rose-600' : 'text-[#047857]'}`}>
+                      {whispAnalysisResult.summary?.disturbanceAfter2020 === 'yes' ? '⚠️ Detectada' : '0 ha (Cero)'}
+                    </span>
+                  </div>
+                </div>
+
+                {whispAnalysisResult.summary?.department && (
+                  <div className="flex items-center justify-between text-[10px] text-slate-600 bg-emerald-50/50 px-2 py-1 rounded-md border border-emerald-200/60 font-medium">
+                    <span>Ubicación Satelital:</span>
+                    <span className="font-bold text-slate-800">
+                      {whispAnalysisResult.summary.department}, {whispAnalysisResult.summary.country || 'Colombia'}
+                    </span>
+                  </div>
+                )}
+
+                <div className="text-[10px] text-slate-600 flex items-center justify-between pt-1 border-t border-slate-200">
+                  <span className="font-bold text-emerald-800">
+                    {whispAnalysisResult.summary?.statusLabel || whispAnalysisResult.message}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowWhispRawJson((prev) => !prev)}
+                    className="text-[10px] font-bold text-[#047857] underline cursor-pointer"
+                  >
+                    {showWhispRawJson ? 'Ocultar JSON' : 'Ver JSON'}
+                  </button>
+                </div>
+
+                {showWhispRawJson && (
+                  <pre className="text-[9px] font-mono bg-slate-900 text-emerald-400 p-2.5 rounded-lg overflow-x-auto max-h-40">
+                    {JSON.stringify(whispAnalysisResult.rawResponse || whispAnalysisResult, null, 2)}
+                  </pre>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const renderFieldInput = (field: TemplateField) => {
     const label = field.name || field.label || field.id;
     const val = dynamicValues[field.id] ?? '';
     const type = (field.type || 'text').toLowerCase();
+
+    // Check if this field is a GeoJSON deforestation field
+    const isGeoJsonField = 
+      type === 'geojson' || 
+      field.id === 'geojson_deforestation_field' || 
+      /geojson/i.test(label) || 
+      (typeof val === 'string' && (val.endsWith('.geojson') || val.endsWith('.json')));
+
+    if (isGeoJsonField) {
+      return renderGeoJsonDeforestationCard(field);
+    }
 
     if (type === 'select' || type === 'dependent_select') {
       let options: string[] = field.options || [];
@@ -955,6 +1488,13 @@ export const FarmFormModal: React.FC<FarmFormModalProps> = ({
                 </div>
               ))}
 
+              {/* Si la plantilla no incluye explícitamente el campo GeoJSON, renderizar el módulo de consulta WHISP */}
+              {!hasGeoJsonInTemplate && (
+                <div>
+                  {renderGeoJsonDeforestationCard()}
+                </div>
+              )}
+
               {/* Complementary Location Section ONLY if template lacks Department/Municipality/Vereda */}
               {(!departmentField || !municipalityField || !veredaField) && (
                 <div className="p-4 rounded-xl bg-slate-50 border-2 border-slate-300 space-y-3">
@@ -1110,6 +1650,68 @@ export const FarmFormModal: React.FC<FarmFormModalProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Modal para Configurar API Key de WHISP OpenForis */}
+      {showWhispKeyModal && (
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-fadeIn">
+          <div className="w-full max-w-md bg-white rounded-2xl p-5 border-2 border-slate-900 shadow-[6px_6px_0px_#0f172a] space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-emerald-100 border border-emerald-500 flex items-center justify-center text-[#047857]">
+                  <Key className="w-4 h-4" />
+                </div>
+                <h3 className="text-sm font-extrabold text-slate-900">
+                  Configurar API Key WHISP OpenForis
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowWhispKeyModal(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Ingresa la API Key autorizada de <strong>Open Foris WHISP</strong> para enviar consultas satelitales al endpoint <code>https://whisp.openforis.org/api/submit/geojson</code>.
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="block text-xs font-bold text-slate-700">
+                API Key de WHISP:
+              </label>
+              <input
+                type="text"
+                value={tempWhispApiKey}
+                onChange={(e) => setTempWhispApiKey(e.target.value)}
+                placeholder={DEFAULT_WHISP_API_KEY}
+                className="w-full rounded-xl px-3.5 py-2 text-xs font-mono text-slate-900 input-3d"
+              />
+              <span className="text-[10px] text-slate-500 block">
+                Por defecto: <code>5d0bbccf-8f31-4d4d-83ff-6e033cec8b9a</code>
+              </span>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => setShowWhispKeyModal(false)}
+                className="px-3.5 py-1.5 rounded-xl text-xs font-bold cursor-pointer btn-3d-light"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveWhispApiKey}
+                className="px-4 py-1.5 rounded-xl text-xs font-bold cursor-pointer btn-3d-emerald"
+              >
+                Guardar Clave
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

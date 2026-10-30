@@ -38,8 +38,14 @@ export const ProducerFormModal: React.FC<ProducerFormModalProps> = ({
 
   // Locked association: always the currently selected association
   const currentAssociation = useMemo(() => {
+    if (selectedAssociationId === 'all') {
+      return (
+        associations.find((a) => producerTemplates.some((t) => t.associationId === a.id)) ||
+        associations[0]
+      );
+    }
     return associations.find((a) => a.id === selectedAssociationId) || associations[0];
-  }, [associations, selectedAssociationId]);
+  }, [associations, selectedAssociationId, producerTemplates]);
 
   // Strictly filter producer templates belonging to the active association
   const associationTemplates = useMemo(() => {

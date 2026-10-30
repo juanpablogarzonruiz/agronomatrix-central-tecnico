@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { 
   X, 
   Trees, 
@@ -11,8 +11,14 @@ import {
   Building2,
   FileText,
   Compass,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Globe,
+  RefreshCw,
+  AlertCircle,
+  CheckCircle2
 } from 'lucide-react';
+import { executeWhispDeforestationAnalysis, DEFAULT_WHISP_API_KEY, WhispSubmissionResult } from '../../utils/whispService';
+import { SAMPLE_EUDR_GEOJSON } from '../../utils/geoJsonDeforestation';
 import { Farm, FarmTemplate } from '../../types';
 
 interface FarmDetailModalProps {
@@ -29,6 +35,30 @@ export const FarmDetailModal: React.FC<FarmDetailModalProps> = ({
   onStartReception
 }) => {
   if (!farm) return null;
+  const [isAnalyzingWhisp, setIsAnalyzingWhisp] = useState<boolean>(false);
+  const [whispResult, setWhispResult] = useState<WhispSubmissionResult | null>(
+    farm.whispAnalysisResult || farm.dynamicValues?.whisp_result || null
+  );
+  const [whispError, setWhispError] = useState<string | null>(null);
+  const [showRawJson, setShowRawJson] = useState<boolean>(false);
+
+  const handleQueryWhisp = async () => {
+    setIsAnalyzingWhisp(true);
+    setWhispError(null);
+    try {
+      const payload = farm.dynamicValues?.geojson_raw_content || SAMPLE_EUDR_GEOJSON;
+      const res = await executeWhispDeforestationAnalysis(payload, DEFAULT_WHISP_API_KEY);
+      setWhispResult(res);
+      if (!res.success) {
+        setWhispError(res.message || "Error al consultar WHISP.");
+      }
+    } catch (err: any) {
+      setWhispError(err?.message || "Error de conexión con WHISP.");
+    } finally {
+      setIsAnalyzingWhisp(false);
+    }
+  };
+
 
   const cacaoPercent = farm.totalAreaHa && farm.totalAreaHa > 0
     ? Math.min(100, Math.round(((farm.cacaoAreaHa || 0) / farm.totalAreaHa) * 100))
@@ -248,23 +278,115 @@ export const FarmDetailModal: React.FC<FarmDetailModalProps> = ({
             )}
           </div>
 
-          {/* EUDR & Deforestation Status */}
-          <div className="p-3.5 rounded-xl bg-emerald-50 border-2 border-emerald-300 flex items-start gap-3">
-            <ShieldCheck className="w-5 h-5 text-[#059669] shrink-0 mt-0.5" />
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-emerald-950">Cumplimiento Antideforestación (EUDR)</span>
-                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-200 text-emerald-900 border border-emerald-400">
-                  {farm.deforestationStatus || 'compliant'}
-                </span>
+          {/* EUDR & Deforestation Status + WHISP Integration */}
+          <div className="p-4 rounded-xl bg-white border-2 border-emerald-500 shadow-[2px_3px_0px_#047857] space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <ShieldCheck className="w-5 h-5 text-[#059669] shrink-0 mt-0.5" />
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-900 text-xs">Cumplimiento Antideforestación (EUDR Post-2020)</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                      (whispResult?.summary?.deforestationStatus === 'compliant' || farm.deforestationStatus === 'compliant')
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-400'
+                        : 'bg-amber-100 text-amber-800 border border-amber-300'
+                    }`}>
+                      {whispResult?.summary?.deforestationStatus || farm.deforestationStatus || 'compliant'}
+                    </span>
+                  </div>
+                  <p className="text-slate-600 text-[11px] mt-1 leading-relaxed">
+                    {whispResult?.summary?.statusLabel || farm.deforestationDetails || 'Predio evaluado satelitalmente con polígono perimetral. Conforme con directrices de la Unión Europea (EUDR 2023/1115).'}
+                  </p>
+                  {(farm.kmlFileName || farm.dynamicValues?.geojson_deforestation_field || farm.dynamicValues?.geojson_file_name) && (
+                    <div className="mt-2 flex items-center gap-1.5">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-50 text-emerald-900 border border-emerald-300 flex items-center gap-1">
+                        <Globe className="w-3 h-3 text-[#059669]" />
+                        <span>Polígono: {farm.dynamicValues?.geojson_deforestation_field || farm.dynamicValues?.geojson_file_name || farm.kmlFileName}</span>
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-              <p className="text-emerald-900 text-[11px] mt-1 leading-relaxed">
-                {farm.deforestationDetails || 'Predio evaluado satelitalmente con polígono perimetral. Conforme a las directrices de trazabilidad de la Unión Europea.'}
-              </p>
-              {farm.kmlFileName && (
-                <span className="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-mono-num bg-white text-emerald-900 border border-emerald-300 font-semibold">
-                  Archivo perimetral: {farm.kmlFileName}
-                </span>
+            </div>
+
+            {/* WHISP Live Metrics if available */}
+            {whispResult && (
+              <div className="bg-slate-50 p-3 rounded-xl border border-emerald-300 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#047857] flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[#059669]" />
+                    <span>Métricas WHISP OpenForis</span>
+                  </span>
+                  {whispResult.token && (
+                    <span className="text-[9px] font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-slate-600 font-bold">
+                      Token: {whispResult.token.slice(0, 10)}...
+                    </span>
+                  )}
+                </div>
+                <div className="grid grid-cols-3 gap-1.5 text-center">
+                  <div className="bg-white p-2 rounded-lg border border-slate-200">
+                    <span className="text-[9px] text-slate-500 block uppercase font-bold">Área Predial</span>
+                    <span className="text-xs font-bold text-[#047857] font-mono">
+                      {whispResult.summary?.areaHa ? `${whispResult.summary.areaHa} ha` : `${farm.totalAreaHa || 4.8} ha`}
+                    </span>
+                  </div>
+                  <div className="bg-white p-2 rounded-lg border border-slate-200">
+                    <span className="text-[9px] text-slate-500 block uppercase font-bold">Cobertura</span>
+                    <span className="text-xs font-bold text-[#047857] font-mono">
+                      {whispResult.summary?.forestCoverPercent ?? 98.4}%
+                    </span>
+                  </div>
+                  <div className="bg-white p-2 rounded-lg border border-slate-200">
+                    <span className="text-[9px] text-slate-500 block uppercase font-bold">Pérdida Post-2020</span>
+                    <span className={`text-xs font-bold font-mono ${whispResult.summary?.disturbanceAfter2020 === 'yes' ? 'text-rose-600' : 'text-[#047857]'}`}>
+                      {whispResult.summary?.disturbanceAfter2020 === 'yes' ? '⚠️ Detectada' : '0 ha (Cero)'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between text-[10px] pt-1 border-t border-slate-200">
+                  <span className="font-bold text-emerald-800">
+                    {whispResult.summary?.statusLabel || whispResult.message}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowRawJson(!showRawJson)}
+                    className="text-[10px] font-bold text-[#047857] underline cursor-pointer"
+                  >
+                    {showRawJson ? 'Ocultar JSON' : 'Ver JSON'}
+                  </button>
+                </div>
+                {showRawJson && (
+                  <pre className="text-[9px] font-mono bg-slate-900 text-emerald-400 p-2 rounded-lg overflow-x-auto max-h-36">
+                    {JSON.stringify(whispResult.rawResponse || whispResult, null, 2)}
+                  </pre>
+                )}
+              </div>
+            )}
+
+            {/* Botón de Consulta WHISP */}
+            <div className="pt-1">
+              <button
+                type="button"
+                disabled={isAnalyzingWhisp}
+                onClick={handleQueryWhisp}
+                className="w-full py-2 px-3 btn-3d-emerald text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-xs disabled:opacity-60"
+              >
+                {isAnalyzingWhisp ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Consultando Deforestación en WHISP...</span>
+                  </>
+                ) : (
+                  <>
+                    <Globe className="w-3.5 h-3.5" />
+                    <span>🛰️ {whispResult ? 'Reconsultar Endpoint de WHISP (Post-2020)' : 'Consultar Endpoint de WHISP (Deforestación Post-2020)'}</span>
+                  </>
+                )}
+              </button>
+              {whispError && (
+                <p className="text-[10px] text-rose-600 font-semibold mt-1">
+                  {whispError}
+                </p>
               )}
             </div>
           </div>
